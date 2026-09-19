@@ -50,6 +50,7 @@ public:
 
     int getArpStep() const { return arpeggiator.getCurrentStepIndex(); }
     bool isArpActive() const { return arpeggiator.isArpActive(); }
+    float getMasterPeakLevel() const { return outputPeakLevel.load(); }
 
 private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
@@ -67,6 +68,7 @@ private:
     // Ring buffer for visualizer
     std::array<float, visualizerBufferSize> visualizerBuffer {};
     std::atomic<int> visualizerWritePos { 0 };
+    std::atomic<float> outputPeakLevel { 0.0f };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SimpleSynthAudioProcessor)
 };

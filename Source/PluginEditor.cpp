@@ -7,7 +7,7 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
 
     // Preset Selector
     presetLabel.setText("Preset", juce::dontSendNotification);
-    presetLabel.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(11.0f, juce::Font::bold));
+    presetLabel.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(11.5f, juce::Font::bold));
     presetLabel.setJustificationType(juce::Justification::centredRight);
     presetLabel.setColour(juce::Label::textColourId, RetroUI::RetroLookAndFeel::textMuted);
     addAndMakeVisible(presetLabel);
@@ -33,6 +33,7 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
 
     arpModeBox.addItemList({ "Off", "Up", "Down", "Up/Down", "Chiptune Maj", "Chiptune Min", "Chiptune Oct" }, 1);
     setupComboBox(arpModeBox, arpModeLabel, "Pattern");
+    arpModeBox.onChange = [this]() { updateArpEnabledState(); };
 
     arpRateBox.addItemList({ "1/8", "1/16", "1/32", "1/64" }, 1);
     setupComboBox(arpRateBox, arpRateLabel, "Division");
@@ -64,7 +65,8 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
 
     setupSlider(osc2DetuneSlider, osc2DetuneLabel, "Fine Tune", "Osc2Detune");
     osc2DetuneSlider.textFromValueFunction = [](double val) {
-        return (val > 0.0 ? "+" : "") + juce::String(val, 1) + " ct";
+        int c = juce::roundToInt(val);
+        return (c > 0 ? "+" : "") + juce::String(c) + " ct";
     };
     osc2DetuneSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789.").getDoubleValue(); };
 
@@ -76,7 +78,7 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
     setupSlider(attackSlider, attackLabel, "Attack", "EnvAttack");
     attackSlider.textFromValueFunction = [](double val) {
         if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
-        return juce::String(val, 2) + " s";
+        return juce::String(val, 1) + " s";
     };
     attackSlider.valueFromTextFunction = [](const juce::String& text) {
         if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
@@ -86,7 +88,7 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
     setupSlider(decaySlider, decayLabel, "Decay", "EnvDecay");
     decaySlider.textFromValueFunction = [](double val) {
         if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
-        return juce::String(val, 2) + " s";
+        return juce::String(val, 1) + " s";
     };
     decaySlider.valueFromTextFunction = [](const juce::String& text) {
         if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
@@ -100,7 +102,7 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
     setupSlider(releaseSlider, releaseLabel, "Release", "EnvRelease");
     releaseSlider.textFromValueFunction = [](double val) {
         if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
-        return juce::String(val, 2) + " s";
+        return juce::String(val, 1) + " s";
     };
     releaseSlider.valueFromTextFunction = [](const juce::String& text) {
         if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
@@ -120,12 +122,10 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
 
     setupSlider(resSlider, resLabel, "Resonance", "FilterRes");
     resSlider.textFromValueFunction = [](double val) {
-        int pct = juce::roundToInt((val - 0.1) / (5.0 - 0.1) * 100.0);
-        return juce::String(pct) + " %";
+        return juce::String(val, 2);
     };
     resSlider.valueFromTextFunction = [](const juce::String& text) {
-        double pct = text.retainCharacters("0123456789.").getDoubleValue() * 0.01;
-        return 0.1 + pct * (5.0 - 0.1);
+        return text.retainCharacters("0123456789.").getDoubleValue();
     };
 
     // Lo-Fi Crunch Sliders
@@ -187,6 +187,8 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
     arpModeAttach = std::make_unique<ComboAttachment>(apvts, "arp_mode", arpModeBox);
     arpRateAttach = std::make_unique<ComboAttachment>(apvts, "arp_rate", arpRateBox);
 
+    updateArpEnabledState();
+
     masterGainAttach = std::make_unique<SliderAttachment>(apvts, "master_gain", masterGainSlider);
 
     setSize(860, 540);
@@ -208,7 +210,7 @@ void SimpleSynthAudioProcessorEditor::setupSlider(juce::Slider& slider, juce::La
     addAndMakeVisible(slider);
 
     label.setText(text, juce::dontSendNotification);
-    label.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.0f, juce::Font::bold));
+    label.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(11.0f, juce::Font::bold));
     label.setJustificationType(juce::Justification::centred);
     label.setColour(juce::Label::textColourId, RetroUI::RetroLookAndFeel::textMuted);
     addAndMakeVisible(label);
@@ -220,7 +222,7 @@ void SimpleSynthAudioProcessorEditor::setupComboBox(juce::ComboBox& box, juce::L
     addAndMakeVisible(box);
 
     label.setText(text, juce::dontSendNotification);
-    label.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.0f, juce::Font::bold));
+    label.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(11.0f, juce::Font::bold));
     label.setJustificationType(juce::Justification::centredLeft);
     label.setColour(juce::Label::textColourId, RetroUI::RetroLookAndFeel::textMuted);
     addAndMakeVisible(label);
@@ -234,7 +236,14 @@ void SimpleSynthAudioProcessorEditor::updateOsc2EnabledState()
     osc2SemiSlider.setEnabled(enabled);
     osc2DetuneSlider.setEnabled(enabled);
     oscMixSlider.setEnabled(enabled);
-    repaint();
+    repaint(14, 54, 506, 220);
+}
+
+void SimpleSynthAudioProcessorEditor::updateArpEnabledState()
+{
+    bool arpEnabled = (arpModeBox.getSelectedId() > 1); // 1 is 'Off'
+    arpRateBox.setEnabled(arpEnabled);
+    repaint(530, 54, 316, 220);
 }
 
 void SimpleSynthAudioProcessorEditor::timerCallback()
@@ -242,11 +251,16 @@ void SimpleSynthAudioProcessorEditor::timerCallback()
     // Retrieve latest scope buffer from processor
     audioProcessor.getVisualizerData(visPoints.data(), numVisPoints);
 
+    // Track real-time master peak level with smooth decay
+    float targetPeak = audioProcessor.getMasterPeakLevel();
+    currentMeterLevel = juce::jmax(targetPeak, currentMeterLevel * 0.82f);
+
+    // Repaint master area (includes scope and real-time LED meter)
     if (!visualizerArea.isEmpty())
-        repaint(visualizerArea.expanded(4));
+        repaint(570, 315, 274, 210);
 
     // Repaint Arpeggiator step LED row for live animation
-    repaint(530, 160, 316, 75);
+    repaint(540, 154, 296, 80);
 
     // Keep preset selector synchronized
     int currentProg = audioProcessor.getCurrentProgram();
@@ -256,6 +270,10 @@ void SimpleSynthAudioProcessorEditor::timerCallback()
     bool osc2Enabled = osc2EnableToggle.getToggleState();
     if (osc2WaveBox.isEnabled() != osc2Enabled)
         updateOsc2EnabledState();
+
+    bool arpOn = (arpModeBox.getSelectedId() > 1);
+    if (arpRateBox.isEnabled() != arpOn)
+        updateArpEnabledState();
 }
 
 void SimpleSynthAudioProcessorEditor::drawSectionPanel(juce::Graphics& g, const juce::Rectangle<int>& area,
@@ -270,7 +288,7 @@ void SimpleSynthAudioProcessorEditor::drawSectionPanel(juce::Graphics& g, const 
     g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
     g.drawRoundedRectangle(bounds, 3.0f, 1.0f);
 
-    // Section title in Authentic Pixel Font
+    // Section title in Authentic Pixel Font (identity)
     g.setColour(RetroUI::RetroLookAndFeel::textBright);
     g.setFont(RetroUI::RetroLookAndFeel::getPixelFont(13.0f));
     g.drawText(title, area.getX() + 14, area.getY() + 8, area.getWidth() - 28, 18, juce::Justification::centredLeft);
@@ -291,12 +309,17 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     // Title in CairoPixel Font
     g.setFont(RetroUI::RetroLookAndFeel::getPixelFont(16.0f));
     g.setColour(RetroUI::RetroLookAndFeel::textBright);
-    g.drawText("RETRO-BIT SYNTH", 18, 6, 260, 22, juce::Justification::centredLeft);
+    g.drawText("RETRO-BIT SYNTH", 18, 6, 220, 22, juce::Justification::centredLeft);
 
-    // Hardware subtitle
+    // Subtitle in clean sans-serif
     g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.0f, juce::Font::plain));
     g.setColour(RetroUI::RetroLookAndFeel::textMuted);
-    g.drawText("8-BIT / 16-BIT HARDWARE HYBRID", 18, 26, 320, 16, juce::Justification::centredLeft);
+    g.drawText("8-BIT / 16-BIT HARDWARE HYBRID", 18, 26, 260, 16, juce::Justification::centredLeft);
+
+    // Quiet voice readout in header
+    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.0f, juce::Font::plain));
+    g.setColour(RetroUI::RetroLookAndFeel::textMuted.withAlpha(0.7f));
+    g.drawText("Poly · 8 Voices", 420, 16, 100, 16, juce::Justification::centredRight);
 
     // ==========================================
     // ROW 1: SOUND GENERATION (y = 54, h = 220)
@@ -305,20 +328,23 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     // Panel 1: OSCILLATORS (x = 14, y = 54, w = 506, h = 220)
     drawSectionPanel(g, { 14, 54, 506, 220 }, "OSCILLATORS", RetroUI::RetroLookAndFeel::textBright);
 
-    // Sub-section headings inside OSCILLATORS
-    g.setFont(RetroUI::RetroLookAndFeel::getPixelFont(11.5f));
+    // Sub-section headings inside OSCILLATORS (symmetrical visual weight)
+    g.setFont(RetroUI::RetroLookAndFeel::getPixelFont(12.0f));
     g.setColour(RetroUI::RetroLookAndFeel::textBright);
-    g.drawText("OSC 1", 28, 77, 80, 18, juce::Justification::centredLeft);
-    g.drawText("OSC 2", 224, 77, 50, 18, juce::Justification::centredLeft);
+    g.drawText("OSC 1", 28, 74, 80, 18, juce::Justification::centredLeft);
+    g.drawText("OSC 2", 270, 74, 54, 18, juce::Justification::centredLeft);
 
-    // Hairline divider between OSC 1 and OSC 2
-    g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
-    g.drawVerticalLine(210, 76.0f, 264.0f);
+    // Toned-down hairline vertical divider between OSC 1 and OSC 2
+    g.setColour(RetroUI::RetroLookAndFeel::panelBorder.withAlpha(0.35f));
+    g.drawVerticalLine(256, 74.0f, 264.0f);
 
-    // Dim OSC 2 area visually when disabled
+    // Subtle tick between tuning group and level in OSC 2
+    g.drawVerticalLine(448, 150.0f, 252.0f);
+
+    // Aggressive dimming for disabled OSC 2
     if (!osc2EnableToggle.getToggleState())
     {
-        auto osc2Area = juce::Rectangle<float>(212.0f, 74.0f, 302.0f, 194.0f);
+        auto osc2Area = juce::Rectangle<float>(258.0f, 72.0f, 260.0f, 198.0f);
         g.setColour(RetroUI::RetroLookAndFeel::bgChassis.withAlpha(0.55f));
         g.fillRoundedRectangle(osc2Area, 3.0f);
     }
@@ -326,13 +352,13 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     // Panel 2: ARPEGGIATOR (x = 530, y = 54, w = 316, h = 220)
     drawSectionPanel(g, { 530, 54, 316, 220 }, "ARPEGGIATOR", RetroUI::RetroLookAndFeel::textBright);
 
-    // Step Active label
-    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(9.5f, juce::Font::bold));
+    // Steps label in clean sans-serif
+    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(11.0f, juce::Font::bold));
     g.setColour(RetroUI::RetroLookAndFeel::textMuted);
-    g.drawText("STEP ACTIVE", 546, 162, 120, 14, juce::Justification::centredLeft);
+    g.drawText("Steps", 546, 156, 100, 14, juce::Justification::centredLeft);
 
     // 8 Hardware-style Arp Step LEDs in recessed well
-    auto stepWell = juce::Rectangle<float>(546.0f, 180.0f, 284.0f, 26.0f);
+    auto stepWell = juce::Rectangle<float>(546.0f, 174.0f, 284.0f, 28.0f);
     g.setColour(RetroUI::RetroLookAndFeel::wellBg);
     g.fillRoundedRectangle(stepWell, 3.0f);
     g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
@@ -341,13 +367,14 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     int curStep = audioProcessor.getArpStep();
     bool isArpRunning = audioProcessor.isArpActive();
     int arpModeIdx = arpModeBox.getSelectedId() - 1;
+    bool arpEnabled = (arpModeIdx > 0);
 
     int patternLen = 8;
-    if (arpModeIdx == 0) patternLen = 0;
+    if (!arpEnabled) patternLen = 0;
     else if (arpModeIdx >= 4) patternLen = 4; // Chiptune chords (Maj, Min, Oct)
 
     const float ledW = 27.0f;
-    const float ledH = 18.0f;
+    const float ledH = 20.0f;
     const float ledY = stepWell.getY() + 4.0f;
     const float gap = 7.0f;
     const float startX = stepWell.getX() + 6.0f;
@@ -357,58 +384,73 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
         float lx = startX + i * (ledW + gap);
         juce::Rectangle<float> ledRect(lx, ledY, ledW, ledH);
 
-        bool isCurrent = isArpRunning && (curStep % (patternLen > 0 ? patternLen : 8) == i);
-        bool inPattern = (i < patternLen);
+        bool isCurrent = arpEnabled && isArpRunning && (curStep % (patternLen > 0 ? patternLen : 8) == i);
+        bool inPattern = arpEnabled && (i < patternLen);
 
         if (isCurrent)
         {
-            // Bright illuminated active LED with bloom
-            g.setColour(RetroUI::RetroLookAndFeel::cyanIce.withAlpha(0.35f));
+            // State 3: Current / Playhead Step (luminous bloom + bright solid core)
+            g.setColour(RetroUI::RetroLookAndFeel::cyanIce.withAlpha(0.40f));
             g.fillRoundedRectangle(ledRect.expanded(2.0f), 2.0f);
 
-            g.setColour(juce::Colours::white);
-            g.fillRoundedRectangle(ledRect, 2.0f);
             g.setColour(RetroUI::RetroLookAndFeel::cyanIce);
+            g.fillRoundedRectangle(ledRect, 2.0f);
+            g.setColour(juce::Colours::white);
             g.drawRoundedRectangle(ledRect, 2.0f, 1.5f);
+
+            g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(9.5f, juce::Font::bold));
+            g.setColour(juce::Colour::fromRGB(10, 14, 20));
+            g.drawText(juce::String(i + 1), ledRect.toNearestInt(), juce::Justification::centred);
         }
         else if (inPattern)
         {
-            // Active step in sequence pattern
-            g.setColour(RetroUI::RetroLookAndFeel::cyanIce.withAlpha(0.20f));
+            // State 2: Active Step in pattern (filled soft cyan + cyan border)
+            g.setColour(juce::Colour::fromRGB(19, 52, 61));
             g.fillRoundedRectangle(ledRect, 2.0f);
-            g.setColour(RetroUI::RetroLookAndFeel::cyanIce.withAlpha(0.60f));
+            g.setColour(RetroUI::RetroLookAndFeel::cyanIce.withAlpha(0.70f));
             g.drawRoundedRectangle(ledRect, 2.0f, 1.0f);
+
+            g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(9.5f, juce::Font::bold));
+            g.setColour(RetroUI::RetroLookAndFeel::textBright);
+            g.drawText(juce::String(i + 1), ledRect.toNearestInt(), juce::Justification::centred);
         }
         else
         {
-            // Inactive / idle step
-            g.setColour(RetroUI::RetroLookAndFeel::panelBg.darker(0.3f));
+            // State 1: Inactive Step (dark matte gray)
+            g.setColour(juce::Colour::fromRGB(21, 23, 28));
             g.fillRoundedRectangle(ledRect, 2.0f);
-            g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
+            g.setColour(RetroUI::RetroLookAndFeel::panelBorder.darker(0.1f));
             g.drawRoundedRectangle(ledRect, 2.0f, 1.0f);
-        }
 
-        // Step number 1..8
-        g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(9.0f, juce::Font::bold));
-        g.setColour(isCurrent ? juce::Colours::black : (inPattern ? RetroUI::RetroLookAndFeel::textBright : RetroUI::RetroLookAndFeel::textDim));
-        g.drawText(juce::String(i + 1), ledRect.toNearestInt(), juce::Justification::centred);
+            g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(9.5f, juce::Font::plain));
+            g.setColour(RetroUI::RetroLookAndFeel::textDim);
+            g.drawText(juce::String(i + 1), ledRect.toNearestInt(), juce::Justification::centred);
+        }
     }
 
-    // Arpeggiator Status Readout
+    // Arpeggiator Status text in clean sans-serif
     juce::String arpInfo;
-    if (arpModeIdx == 0)
+    if (!arpEnabled)
     {
-        arpInfo = "MODE: OFF (POLYPHONIC 8-VOICE)";
+        arpInfo = "Arpeggiator Disabled";
     }
     else
     {
-        const char* rates[] = { "1/8 NOTE", "1/16 NOTE", "1/32 NOTE", "1/64 NOTE" };
+        const char* rates[] = { "1/8 Note", "1/16 Note", "1/32 Note", "1/64 Note" };
         int rIdx = juce::jlimit(0, 3, arpRateBox.getSelectedId() - 1);
-        arpInfo = juce::String("RATE: ") + rates[rIdx] + "  |  STEPS: " + juce::String(patternLen) + "  |  SYNC: HOST BPM";
+        arpInfo = juce::String(rates[rIdx]) + " · " + juce::String(patternLen) + " Steps · Host Synced";
     }
     g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(9.5f, juce::Font::plain));
-    g.setColour(RetroUI::RetroLookAndFeel::textMuted);
+    g.setColour(arpEnabled ? RetroUI::RetroLookAndFeel::textMuted : RetroUI::RetroLookAndFeel::textDim);
     g.drawText(arpInfo, stepWell.withY(stepWell.getBottom() + 4.0f).withHeight(16.0f).toNearestInt(), juce::Justification::centred);
+
+    // Aggressive dimming over Arpeggiator body when Pattern = Off
+    if (!arpEnabled)
+    {
+        auto arpScrim = juce::Rectangle<float>(532.0f, 122.0f, 312.0f, 148.0f);
+        g.setColour(RetroUI::RetroLookAndFeel::bgChassis.withAlpha(0.50f));
+        g.fillRoundedRectangle(arpScrim, 3.0f);
+    }
 
     // ==========================================
     // ROW 2: CONTINUOUS LOWER PLATE (y = 284, h = 244)
@@ -419,23 +461,80 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
     g.drawRoundedRectangle(lowerBounds, 3.0f, 1.0f);
 
-    // Hairline vertical dividers separating Envelope, Filter/Crunch, and Master
+    // Toned-down hairline vertical dividers separating Envelope, Filter/Crunch, and Master
+    g.setColour(RetroUI::RetroLookAndFeel::panelBorder.withAlpha(0.35f));
     g.drawVerticalLine(288, lowerBounds.getY() + 10.0f, lowerBounds.getBottom() - 10.0f);
     g.drawVerticalLine(566, lowerBounds.getY() + 10.0f, lowerBounds.getBottom() - 10.0f);
 
-    // Section Titles in CairoPixel Font
+    // Section Titles in CairoPixel Font (identity)
     g.setFont(RetroUI::RetroLookAndFeel::getPixelFont(13.0f));
     g.setColour(RetroUI::RetroLookAndFeel::textBright);
     g.drawText("ENVELOPE (ADSR)", 28, 296, 200, 18, juce::Justification::centredLeft);
     g.drawText("FILTER / CRUNCH", 302, 296, 200, 18, juce::Justification::centredLeft);
     g.drawText("MASTER", 580, 296, 120, 18, juce::Justification::centredLeft);
 
-    // Paint Integrated Hardware CRT Oscilloscope
+    // ==========================================
+    // MASTER SECTION: REAL-TIME LED PEAK METER
+    // ==========================================
+    auto meterRect = juce::Rectangle<float>(674.0f, 332.0f, 16.0f, 78.0f);
+    g.setColour(RetroUI::RetroLookAndFeel::wellBg);
+    g.fillRoundedRectangle(meterRect, 2.0f);
+    g.setColour(RetroUI::RetroLookAndFeel::panelBorder.darker(0.1f));
+    g.drawRoundedRectangle(meterRect, 2.0f, 1.0f);
+
+    // 10 LED segments
+    const int numSegments = 10;
+    const float segGap = 1.5f;
+    const float segH = (meterRect.getHeight() - 4.0f - (numSegments - 1) * segGap) / static_cast<float>(numSegments);
+    const float segW = meterRect.getWidth() - 4.0f;
+    const float segX = meterRect.getX() + 2.0f;
+
+    // Map peak (0.0 to 1.5) to segments (0 to 10)
+    int litSegments = juce::jlimit(0, numSegments, static_cast<int>(currentMeterLevel * 10.0f));
+
+    for (int s = 0; s < numSegments; ++s)
+    {
+        // Draw from bottom (s=0) to top (s=9)
+        int segIndexFromBottom = s;
+        float segY = meterRect.getBottom() - 2.0f - (s + 1) * segH - s * segGap;
+        juce::Rectangle<float> segRect(segX, segY, segW, segH);
+
+        bool isLit = (segIndexFromBottom < litSegments);
+
+        juce::Colour segColour = juce::Colour::fromRGB(0, 229, 163); // Green/cyan default
+        if (segIndexFromBottom >= 8)
+            segColour = juce::Colour::fromRGB(255, 69, 58);  // Red clipping
+        else if (segIndexFromBottom >= 6)
+            segColour = RetroUI::RetroLookAndFeel::warmAmber; // Amber caution
+
+        if (isLit)
+        {
+            g.setColour(segColour);
+            g.fillRect(segRect);
+        }
+        else
+        {
+            g.setColour(segColour.withAlpha(0.15f));
+            g.fillRect(segRect);
+        }
+    }
+
+    // dB Markings beside meter
+    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(8.5f, juce::Font::plain));
+    g.setColour(RetroUI::RetroLookAndFeel::textDim);
+    g.drawText("+3", 694, 331, 20, 10, juce::Justification::centredLeft);
+    g.drawText(" 0", 694, 347, 20, 10, juce::Justification::centredLeft);
+    g.drawText("-6", 694, 363, 20, 10, juce::Justification::centredLeft);
+    g.drawText("-18", 694, 381, 22, 10, juce::Justification::centredLeft);
+
+    // ==========================================
+    // HARDWARE CRT OSCILLOSCOPE (STABILIZED TRACE)
+    // ==========================================
     if (!visualizerArea.isEmpty())
     {
         auto vBounds = visualizerArea.toFloat();
 
-        // 1. Recessed dark screen housing
+        // 1. Recessed dark CRT screen housing
         g.setColour(juce::Colour::fromRGB(8, 12, 10));
         g.fillRoundedRectangle(vBounds, 3.0f);
 
@@ -443,26 +542,48 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
         g.setColour(RetroUI::RetroLookAndFeel::panelBorder.darker(0.2f));
         g.drawRoundedRectangle(vBounds, 3.0f, 1.0f);
 
-        // 3. Phosphor Grid Reticle
-        g.setColour(juce::Colour::fromRGB(18, 28, 22));
+        // 3. Phosphor Grid Reticle (instrumentation style)
         float midY = vBounds.getCentreY();
         float midX = vBounds.getCentreX();
+
+        // Center crosshairs
+        g.setColour(juce::Colour::fromRGB(22, 42, 32));
         g.drawLine(vBounds.getX(), midY, vBounds.getRight(), midY, 1.0f);
         g.drawLine(midX, vBounds.getY(), midX, vBounds.getBottom(), 1.0f);
 
-        // Subdivisions
-        g.drawLine(vBounds.getX(), midY - vBounds.getHeight() * 0.25f, vBounds.getRight(), midY - vBounds.getHeight() * 0.25f, 0.6f);
-        g.drawLine(vBounds.getX(), midY + vBounds.getHeight() * 0.25f, vBounds.getRight(), midY + vBounds.getHeight() * 0.25f, 0.6f);
+        // Reticle ticks on crosshairs (instrumentation look)
+        for (float tx = vBounds.getX() + 20.0f; tx < vBounds.getRight(); tx += 20.0f)
+            g.drawLine(tx, midY - 2.0f, tx, midY + 2.0f, 0.8f);
+        for (float ty = vBounds.getY() + 15.0f; ty < vBounds.getBottom(); ty += 15.0f)
+            g.drawLine(midX - 2.0f, ty, midX + 2.0f, ty, 0.8f);
 
-        // 4. Trace path calculation
+        // Subdivisions (faint horizontal boundaries)
+        g.setColour(juce::Colour::fromRGB(14, 26, 20));
+        g.drawLine(vBounds.getX(), midY - vBounds.getHeight() * 0.28f, vBounds.getRight(), midY - vBounds.getHeight() * 0.28f, 0.6f);
+        g.drawLine(vBounds.getX(), midY + vBounds.getHeight() * 0.28f, vBounds.getRight(), midY + vBounds.getHeight() * 0.28f, 0.6f);
+
+        // 4. Trigger Stabilization: find first upward zero-crossing
+        int triggerIdx = 0;
+        for (int i = 1; i < numVisPoints - 128; ++i)
+        {
+            if (visPoints[static_cast<size_t>(i - 1)] <= 0.0f && visPoints[static_cast<size_t>(i)] > 0.0f)
+            {
+                triggerIdx = i;
+                break;
+            }
+        }
+
+        // 5. Instrumentation waveform trace (denser, responsive, preserving square edges)
+        const int displayPoints = 128;
         juce::Path wavePath;
-        float halfH = vBounds.getHeight() * 0.38f;
-        float dx = vBounds.getWidth() / static_cast<float>(numVisPoints);
+        float halfH = vBounds.getHeight() * 0.40f;
+        float dx = vBounds.getWidth() / static_cast<float>(displayPoints - 1);
 
-        for (int i = 0; i < numVisPoints; ++i)
+        for (int i = 0; i < displayPoints; ++i)
         {
             float x = vBounds.getX() + i * dx;
-            float y = midY - juce::jlimit(-1.0f, 1.0f, visPoints[static_cast<size_t>(i)]) * halfH;
+            float sample = visPoints[static_cast<size_t>((triggerIdx + i) % numVisPoints)];
+            float y = midY - juce::jlimit(-1.0f, 1.0f, sample) * halfH;
 
             if (i == 0)
                 wavePath.startNewSubPath(x, y);
@@ -470,22 +591,28 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
                 wavePath.lineTo(x, y);
         }
 
-        // 5. Phosphor Bloom Glow (Pass 1)
-        g.setColour(juce::Colour::fromRGB(0, 240, 180).withAlpha(0.20f));
-        g.strokePath(wavePath, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        // Pass 1: Phosphor Bloom Glow
+        g.setColour(juce::Colour::fromRGB(0, 240, 180).withAlpha(0.22f));
+        g.strokePath(wavePath, juce::PathStrokeType(2.8f, juce::PathStrokeType::mitered, juce::PathStrokeType::square));
 
-        // 6. Crisp Beam Core (Pass 2)
-        g.setColour(juce::Colour::fromRGB(110, 255, 215).withAlpha(0.95f));
-        g.strokePath(wavePath, juce::PathStrokeType(1.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        // Pass 2: Laser Beam Core
+        g.setColour(juce::Colour::fromRGB(180, 255, 235).withAlpha(0.95f));
+        g.strokePath(wavePath, juce::PathStrokeType(1.4f, juce::PathStrokeType::mitered, juce::PathStrokeType::square));
 
-        // 7. CRT Horizontal Scanlines
+        // 6. CRT Horizontal Scanlines
         g.setColour(juce::Colours::black.withAlpha(0.12f));
         for (float yLine = vBounds.getY(); yLine < vBounds.getBottom(); yLine += 3.0f)
         {
             g.drawHorizontalLine(static_cast<int>(yLine), vBounds.getX(), vBounds.getRight());
         }
 
-        // 8. Glass tube vignette
+        // 7. Mini TRACE status badge in top-right
+        g.setColour(juce::Colour::fromRGB(0, 240, 180).withAlpha(0.85f));
+        g.fillEllipse(vBounds.getRight() - 48.0f, vBounds.getY() + 7.0f, 4.0f, 4.0f);
+        g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(8.0f, juce::Font::bold));
+        g.drawText("TRACE", juce::Rectangle<float>(vBounds.getRight() - 42.0f, vBounds.getY() + 4.0f, 36.0f, 10.0f).toNearestInt(), juce::Justification::centredLeft);
+
+        // 8. Glass tube spherical vignette
         juce::ColourGradient vignette(juce::Colours::transparentBlack, midX, midY,
                                       juce::Colour::fromRGB(2, 4, 3).withAlpha(0.40f), vBounds.getX(), vBounds.getY(), true);
         g.setGradientFill(vignette);
@@ -503,40 +630,42 @@ void SimpleSynthAudioProcessorEditor::resized()
     // ROW 1: SOUND GENERATION (y = 54, h = 220)
     // ==========================================
 
-    // OSC 1 (Left quadrant)
-    osc1WaveLabel.setBounds(28, 100, 164, 14);
-    osc1WaveBox.setBounds(28, 118, 164, 24);
-    osc1PwLabel.setBounds(75, 154, 70, 14);
-    osc1PwSlider.setBounds(75, 170, 70, 88);
+    // OSC 1 (Left Half: x = 14 to 256, w = 242)
+    osc1WaveLabel.setBounds(28, 98, 120, 14);
+    osc1WaveBox.setBounds(28, 114, 214, 24);
+    osc1PwLabel.setBounds(95, 148, 80, 14);
+    osc1PwSlider.setBounds(95, 162, 80, 88);
 
-    // OSC 2 (Right quadrant)
-    osc2EnableToggle.setBounds(276, 76, 56, 20);
-    osc2WaveLabel.setBounds(224, 100, 280, 14);
-    osc2WaveBox.setBounds(224, 118, 280, 24);
+    // OSC 2 (Right Half: x = 256 to 520, w = 264)
+    osc2EnableToggle.setBounds(328, 72, 56, 20);
+    osc2WaveLabel.setBounds(270, 98, 120, 14);
+    osc2WaveBox.setBounds(270, 114, 236, 24);
 
-    const int osc2KnobY = 170;
-    const int osc2KnobW = 64;
+    const int osc2KnobY = 162;
+    const int osc2KnobW = 56;
     const int osc2KnobH = 88;
-    const int osc2LblY  = 154;
+    const int osc2LblY  = 148;
 
-    osc2OctLabel.setBounds(224, osc2LblY, osc2KnobW, 14);
-    osc2OctSlider.setBounds(224, osc2KnobY, osc2KnobW, osc2KnobH);
+    // Pitch/Tuning controls
+    osc2OctLabel.setBounds(270, osc2LblY, osc2KnobW, 14);
+    osc2OctSlider.setBounds(270, osc2KnobY, osc2KnobW, osc2KnobH);
 
-    osc2SemiLabel.setBounds(296, osc2LblY, osc2KnobW, 14);
-    osc2SemiSlider.setBounds(296, osc2KnobY, osc2KnobW, osc2KnobH);
+    osc2SemiLabel.setBounds(330, osc2LblY, osc2KnobW, 14);
+    osc2SemiSlider.setBounds(330, osc2KnobY, osc2KnobW, osc2KnobH);
 
-    osc2DetuneLabel.setBounds(368, osc2LblY, osc2KnobW, 14);
-    osc2DetuneSlider.setBounds(368, osc2KnobY, osc2KnobW, osc2KnobH);
+    osc2DetuneLabel.setBounds(390, osc2LblY, osc2KnobW, 14);
+    osc2DetuneSlider.setBounds(390, osc2KnobY, osc2KnobW, osc2KnobH);
 
-    oscMixLabel.setBounds(440, osc2LblY, osc2KnobW, 14);
-    oscMixSlider.setBounds(440, osc2KnobY, osc2KnobW, osc2KnobH);
+    // Distinct Level control
+    oscMixLabel.setBounds(454, osc2LblY, 54, 14);
+    oscMixSlider.setBounds(454, osc2KnobY, 54, osc2KnobH);
 
     // ARPEGGIATOR (x = 530, y = 54, w = 316, h = 220)
-    arpModeLabel.setBounds(546, 98, 66, 22);
-    arpModeBox.setBounds(618, 96, 212, 24);
+    arpModeLabel.setBounds(546, 96, 64, 22);
+    arpModeBox.setBounds(616, 94, 214, 24);
 
-    arpRateLabel.setBounds(546, 130, 66, 22);
-    arpRateBox.setBounds(618, 128, 212, 24);
+    arpRateLabel.setBounds(546, 126, 64, 22);
+    arpRateBox.setBounds(616, 124, 214, 24);
 
     // ==========================================
     // ROW 2: CONTINUOUS LOWER PLATE (y = 284, h = 244)
@@ -545,8 +674,8 @@ void SimpleSynthAudioProcessorEditor::resized()
     // ENVELOPE (ADSR) (x = 14 to 288)
     const int envKnobW = 58;
     const int envKnobH = 92;
-    const int envKnobY = 350;
-    const int envLblY  = 334;
+    const int envKnobY = 348;
+    const int envLblY  = 330;
 
     attackLabel.setBounds(26, envLblY, envKnobW, 14);
     attackSlider.setBounds(26, envKnobY, envKnobW, envKnobH);
@@ -564,22 +693,22 @@ void SimpleSynthAudioProcessorEditor::resized()
     const int filterKnobW = 96;
     const int filterKnobH = 76;
 
-    cutoffLabel.setBounds(318, 324, filterKnobW, 14);
-    cutoffSlider.setBounds(318, 340, filterKnobW, filterKnobH);
+    cutoffLabel.setBounds(318, 322, filterKnobW, 14);
+    cutoffSlider.setBounds(318, 338, filterKnobW, filterKnobH);
 
-    resLabel.setBounds(438, 324, filterKnobW, 14);
-    resSlider.setBounds(438, 340, filterKnobW, filterKnobH);
+    resLabel.setBounds(438, 322, filterKnobW, 14);
+    resSlider.setBounds(438, 338, filterKnobW, filterKnobH);
 
-    bitDepthLabel.setBounds(318, 424, filterKnobW, 14);
-    bitDepthSlider.setBounds(318, 440, filterKnobW, filterKnobH);
+    bitDepthLabel.setBounds(318, 422, filterKnobW, 14);
+    bitDepthSlider.setBounds(318, 438, filterKnobW, filterKnobH);
 
-    downsampleLabel.setBounds(438, 424, filterKnobW, 14);
-    downsampleSlider.setBounds(438, 440, filterKnobW, filterKnobH);
+    downsampleLabel.setBounds(438, 422, filterKnobW, 14);
+    downsampleSlider.setBounds(438, 438, filterKnobW, filterKnobH);
 
     // MASTER & SCOPE (x = 566 to 846)
-    masterGainLabel.setBounds(668, 318, 76, 14);
-    masterGainSlider.setBounds(668, 334, 76, 76);
+    masterGainLabel.setBounds(586, 320, 72, 14);
+    masterGainSlider.setBounds(586, 336, 72, 76);
 
-    // Recessed widescreen CRT oscilloscope integrated beneath Volume knob
-    visualizerArea.setBounds(586, 418, 240, 98);
+    // Recessed widescreen CRT oscilloscope integrated beneath Volume and Level meter
+    visualizerArea.setBounds(586, 422, 244, 94);
 }

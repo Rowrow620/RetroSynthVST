@@ -11,10 +11,10 @@ const juce::Colour RetroLookAndFeel::panelBorder = juce::Colour::fromRGB(44, 47,
 const juce::Colour RetroLookAndFeel::wellBg      = juce::Colour::fromRGB(18, 19, 23);   // #121317
 const juce::Colour RetroLookAndFeel::cyanIce     = juce::Colour::fromRGB(0, 229, 255);  // #00E5FF
 const juce::Colour RetroLookAndFeel::warmAmber   = juce::Colour::fromRGB(229, 136, 36); // #E58824
-const juce::Colour RetroLookAndFeel::knobTrack   = juce::Colour::fromRGB(48, 51, 62);   // #30333E
-const juce::Colour RetroLookAndFeel::knobActive  = juce::Colour::fromRGB(122, 130, 150);// #7A8296
-const juce::Colour RetroLookAndFeel::textBright  = juce::Colour::fromRGB(229, 231, 235);// #E5E7EB
-const juce::Colour RetroLookAndFeel::textMuted   = juce::Colour::fromRGB(138, 145, 160);// #8A91A0
+const juce::Colour RetroLookAndFeel::knobTrack   = juce::Colour::fromRGB(32, 34, 41);   // #202229 Darker recessed track
+const juce::Colour RetroLookAndFeel::knobActive  = juce::Colour::fromRGB(104, 112, 128);// #687080 Calm metallic gray
+const juce::Colour RetroLookAndFeel::textBright  = juce::Colour::fromRGB(255, 255, 255);// #FFFFFF Pure readable white
+const juce::Colour RetroLookAndFeel::textMuted   = juce::Colour::fromRGB(166, 175, 191);// #A6AFBF Brightened silver-gray
 const juce::Colour RetroLookAndFeel::textDim     = juce::Colour::fromRGB(75, 81, 98);   // #4B5162
 
 // Compatibility Aliases
@@ -29,6 +29,10 @@ RetroLookAndFeel::RetroLookAndFeel()
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
     setColour(juce::Slider::textBoxTextColourId, textBright);
+
+    // Labels
+    setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+    setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
 
     // Dropdowns
     setColour(juce::ComboBox::backgroundColourId, wellBg);
@@ -67,6 +71,36 @@ juce::Label* RetroLookAndFeel::createSliderTextBox(juce::Slider& slider)
     return l;
 }
 
+void RetroLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
+{
+    if (!label.isBeingEdited())
+    {
+        auto alpha = label.isEnabled() ? 1.0f : 0.45f;
+        const juce::Font font(getLabelFont(label));
+
+        g.setColour(label.findColour(juce::Label::textColourId).withMultipliedAlpha(alpha));
+        g.setFont(font);
+
+        auto textArea = getLabelBorderSize(label).subtractedFrom(label.getLocalBounds());
+
+        // Border ONLY on hover or focus - never by default!
+        if (label.hasKeyboardFocus(true) || label.isMouseOver())
+        {
+            g.setColour(panelBorder.brighter(0.35f));
+            g.drawRoundedRectangle(label.getLocalBounds().toFloat().reduced(0.5f), 2.0f, 1.0f);
+        }
+
+        g.drawFittedText(label.getText(), textArea, label.getJustificationType(),
+                         juce::jmax(1, (int)((float)textArea.getHeight() / font.getHeight())),
+                         label.getMinimumHorizontalScale());
+    }
+    else if (label.isEnabled())
+    {
+        g.setColour(cyanIce.withAlpha(0.85f));
+        g.drawRoundedRectangle(label.getLocalBounds().toFloat().reduced(0.5f), 2.0f, 1.0f);
+    }
+}
+
 void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                                         float sliderPosProportional, float rotaryStartAngle,
                                         float rotaryEndAngle, juce::Slider& slider)
@@ -77,23 +111,21 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
     auto centreY = bounds.getCentreY();
     const float trackRadius = radius - 3.5f;
 
-    // 1. Inactive background track ring
+    // 1. Dark, recessed inactive background track ring
     juce::Path bgArc;
     bgArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
     g.setColour(knobTrack);
-    g.strokePath(bgArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.strokePath(bgArc, juce::PathStrokeType(2.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
     // 2. Determine unipolar vs bipolar parameter logic
     const auto name = slider.getName();
     bool isBipolar = name.containsIgnoreCase("Oct") ||
                      name.containsIgnoreCase("Semi") ||
-                     name.containsIgnoreCase("Detune") ||
-                     name.containsIgnoreCase("Gain") ||
-                     name.containsIgnoreCase("Volume");
+                     name.containsIgnoreCase("Detune");
 
     float toAngle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
 
-    // Accent color: Warm amber for filter/crunch, Cyan for level/pw, Neutral metallic gray for everything else!
+    // Accent color: Warm amber for filter/crunch, Cyan for level/pw, Calm metallic gray for everything else!
     juce::Colour activeColour = knobActive;
     if (name.containsIgnoreCase("Filter") || name.containsIgnoreCase("Cutoff")
         || name.containsIgnoreCase("Res") || name.containsIgnoreCase("Bit")
@@ -104,10 +136,17 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
     else if (name.containsIgnoreCase("Mix") || name.containsIgnoreCase("Level")
              || name.containsIgnoreCase("Pw") || name.containsIgnoreCase("Width"))
     {
-        activeColour = cyanIce.withAlpha(0.85f);
+        activeColour = cyanIce;
     }
 
-    // 3. Draw active arc track with mathematically accurate ranges
+    // Always draw center detent tick for bipolar zero position
+    if (isBipolar)
+    {
+        g.setColour(panelBorder.brighter(0.40f));
+        g.drawLine(centreX, centreY - trackRadius - 4.5f, centreX, centreY - trackRadius + 1.5f, 1.8f);
+    }
+
+    // 3. Draw active arc track with secondary visual prominence
     if (slider.isEnabled())
     {
         float fromAngle = rotaryStartAngle;
@@ -133,21 +172,11 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
             juce::Path activeArc;
             activeArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, fromAngle, sweepTo, true);
             g.setColour(activeColour);
-            g.strokePath(activeArc, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-        }
-        else if (isBipolar)
-        {
-            // Draw center detent tick for bipolar zero position
-            float midAngle = (rotaryStartAngle + rotaryEndAngle) * 0.5f;
-            float cosA = std::sin(midAngle);
-            float sinA = -std::cos(midAngle);
-            g.setColour(textMuted);
-            g.drawLine(centreX + cosA * (trackRadius - 4.0f), centreY + sinA * (trackRadius - 4.0f),
-                       centreX + cosA * (trackRadius + 4.0f), centreY + sinA * (trackRadius + 4.0f), 1.5f);
+            g.strokePath(activeArc, juce::PathStrokeType(3.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
         }
     }
 
-    // 4. Center knob body (hardware cylindrical cap with subtle bevel)
+    // 4. Center knob body (hardware cylindrical cap in deep matte charcoal)
     float knobRadius = radius * 0.70f;
 
     // Subtle drop shadow / rim well
@@ -156,34 +185,41 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
 
     if (slider.isEnabled())
     {
-        // Cylindrical gradient body
-        juce::ColourGradient grad(panelBg.brighter(0.12f), centreX, centreY - knobRadius,
-                                  panelBg.darker(0.15f), centreX, centreY + knobRadius, false);
+        // Cylindrical gradient body (deeper dark matte body)
+        juce::ColourGradient grad(panelBg.darker(0.10f), centreX, centreY - knobRadius,
+                                  panelBg.darker(0.35f), centreX, centreY + knobRadius, false);
         g.setGradientFill(grad);
         g.fillEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f);
 
         // Machined edge rim
-        g.setColour(panelBorder.brighter(0.15f));
-        g.drawEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.2f);
+        g.setColour(panelBorder);
+        g.drawEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.0f);
+
+        // If Level knob: give a subtle cyan inner ring to visually separate gain from pitch
+        if (name.containsIgnoreCase("Mix") || name.containsIgnoreCase("Level"))
+        {
+            g.setColour(cyanIce.withAlpha(0.45f));
+            g.drawEllipse(centreX - knobRadius * 0.45f, centreY - knobRadius * 0.45f, knobRadius * 0.9f, knobRadius * 0.9f, 1.0f);
+        }
     }
     else
     {
-        g.setColour(panelBg.darker(0.2f));
+        g.setColour(panelBg.darker(0.3f));
         g.fillEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f);
         g.setColour(panelBorder.darker(0.2f));
         g.drawEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.0f);
     }
 
-    // 5. High-precision pointer line
+    // 5. High-precision pointer line - BRIGHTEST element on the knob
     juce::Path p;
     float pointerInner = knobRadius * 0.32f;
-    float pointerOuter = knobRadius * 0.85f;
+    float pointerOuter = knobRadius * 0.88f;
     float pointerThick = 2.4f;
 
     p.addRoundedRectangle(-pointerThick * 0.5f, -pointerOuter, pointerThick, pointerOuter - pointerInner, 1.2f);
     p.applyTransform(juce::AffineTransform::rotation(toAngle).translated(centreX, centreY));
 
-    g.setColour(slider.isEnabled() ? textBright : textDim);
+    g.setColour(slider.isEnabled() ? juce::Colours::white : textDim);
     g.fillPath(p);
 }
 

@@ -20,6 +20,7 @@ public:
                           float rotaryEndAngle, juce::Slider& slider) override;
 
     juce::Label* createSliderTextBox(juce::Slider& slider) override;
+    void drawLabel(juce::Graphics& g, juce::Label& label) override;
 
     // ComboBoxes & Menus
     void drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,

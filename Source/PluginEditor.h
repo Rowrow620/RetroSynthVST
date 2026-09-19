@@ -86,6 +86,7 @@ private:
     static constexpr int numVisPoints = 256;
     std::array<float, numVisPoints> visPoints {};
     juce::Rectangle<int> visualizerArea;
+    float currentMeterLevel = 0.0f;
 
     // Attachments
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -93,6 +94,7 @@ private:
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
 
     void updateOsc2EnabledState();
+    void updateArpEnabledState();
 
     std::unique_ptr<ComboAttachment> osc1WaveAttach;
     std::unique_ptr<SliderAttachment> osc1PwAttach;

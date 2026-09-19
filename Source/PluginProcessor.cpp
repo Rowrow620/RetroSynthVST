@@ -356,6 +356,7 @@ void SimpleSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
 
     int writePos = visualizerWritePos.load();
 
+    float blockPeak = 0.0f;
     for (int s = 0; s < buffer.getNumSamples(); ++s)
     {
         float l = left[s];
@@ -371,12 +372,15 @@ void SimpleSynthAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, j
         if (buffer.getNumChannels() > 1)
             right[s] = r;
 
+        blockPeak = juce::jmax(blockPeak, std::abs(l), std::abs(r));
+
         // Push to visualizer buffer
         visualizerBuffer[static_cast<size_t>(writePos)] = (l + r) * 0.5f;
         writePos = (writePos + 1) % visualizerBufferSize;
     }
 
     visualizerWritePos.store(writePos);
+    outputPeakLevel.store(blockPeak);
 }
 
 void SimpleSynthAudioProcessor::getVisualizerData(float* destination, int numSamples) const
