@@ -7,9 +7,9 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
 
     // Preset Selector
     presetLabel.setText("PRESET", juce::dontSendNotification);
-    presetLabel.setFont(juce::Font(11.0f, juce::Font::bold));
+    presetLabel.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(11.0f, juce::Font::bold));
     presetLabel.setJustificationType(juce::Justification::centredRight);
-    presetLabel.setColour(juce::Label::textColourId, RetroUI::RetroLookAndFeel::cyanGlow);
+    presetLabel.setColour(juce::Label::textColourId, RetroUI::RetroLookAndFeel::cyanIce);
     addAndMakeVisible(presetLabel);
 
     for (int i = 0; i < audioProcessor.getNumPrograms(); ++i)
@@ -32,10 +32,10 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
     setupComboBox(osc2WaveBox, osc2WaveLabel, "WAVEFORM");
 
     arpModeBox.addItemList({ "Off", "Up", "Down", "Up/Down", "Chiptune Maj", "Chiptune Min", "Chiptune Oct" }, 1);
-    setupComboBox(arpModeBox, arpModeLabel, "ARP MODE");
+    setupComboBox(arpModeBox, arpModeLabel, "PATTERN MODE");
 
     arpRateBox.addItemList({ "1/8", "1/16", "1/32", "1/64" }, 1);
-    setupComboBox(arpRateBox, arpRateLabel, "RATE");
+    setupComboBox(arpRateBox, arpRateLabel, "NOTE DIVISION");
 
     // Setup Sliders
     setupSlider(osc1PwSlider, osc1PwLabel, "PULSE WIDTH", "Osc1Pw");
@@ -56,7 +56,7 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
     setupSlider(releaseSlider, releaseLabel, "RELEASE", "EnvRelease");
 
     setupSlider(cutoffSlider, cutoffLabel, "CUTOFF", "FilterCutoff");
-    setupSlider(resSlider, resLabel, "RES", "FilterRes");
+    setupSlider(resSlider, resLabel, "RESONANCE", "FilterRes");
 
     setupSlider(bitDepthSlider, bitDepthLabel, "BITS", "BitDepth");
     setupSlider(downsampleSlider, downsampleLabel, "CRUNCH", "Downsample");
@@ -94,7 +94,7 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
 
     masterGainAttach = std::make_unique<SliderAttachment>(apvts, "master_gain", masterGainSlider);
 
-    setSize(840, 520);
+    setSize(860, 540);
     startTimerHz(30);
 }
 
@@ -113,7 +113,7 @@ void SimpleSynthAudioProcessorEditor::setupSlider(juce::Slider& slider, juce::La
     addAndMakeVisible(slider);
 
     label.setText(text, juce::dontSendNotification);
-    label.setFont(juce::Font(11.0f, juce::Font::bold));
+    label.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.0f, juce::Font::bold));
     label.setJustificationType(juce::Justification::centred);
     label.setColour(juce::Label::textColourId, RetroUI::RetroLookAndFeel::textMuted);
     addAndMakeVisible(label);
@@ -125,7 +125,7 @@ void SimpleSynthAudioProcessorEditor::setupComboBox(juce::ComboBox& box, juce::L
     addAndMakeVisible(box);
 
     label.setText(text, juce::dontSendNotification);
-    label.setFont(juce::Font(11.0f, juce::Font::bold));
+    label.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.0f, juce::Font::bold));
     label.setJustificationType(juce::Justification::centredLeft);
     label.setColour(juce::Label::textColourId, RetroUI::RetroLookAndFeel::textMuted);
     addAndMakeVisible(label);
@@ -143,10 +143,13 @@ void SimpleSynthAudioProcessorEditor::updateOsc2EnabledState()
 
 void SimpleSynthAudioProcessorEditor::timerCallback()
 {
+    // Retrieve latest scope buffer from processor
     audioProcessor.getVisualizerData(visPoints.data(), numVisPoints);
-    if (!visualizerArea.isEmpty())
-        repaint(visualizerArea);
 
+    if (!visualizerArea.isEmpty())
+        repaint(visualizerArea.expanded(6));
+
+    // Keep preset selector synchronized
     int currentProg = audioProcessor.getCurrentProgram();
     if (presetBox.getSelectedId() != currentProg + 1)
         presetBox.setSelectedId(currentProg + 1, juce::dontSendNotification);
@@ -161,74 +164,118 @@ void SimpleSynthAudioProcessorEditor::drawSectionPanel(juce::Graphics& g, const 
 {
     auto bounds = area.toFloat();
 
-    // Dark panel fill
+    // 1. Contrast-based module surface with soft corners
     g.setColour(RetroUI::RetroLookAndFeel::panelBg);
-    g.fillRoundedRectangle(bounds, 6.0f);
+    g.fillRoundedRectangle(bounds, 7.0f);
 
-    // Subtle border
+    // 2. Subtle inset border (not neon!)
     g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
-    g.drawRoundedRectangle(bounds, 6.0f, 1.2f);
+    g.drawRoundedRectangle(bounds, 7.0f, 1.0f);
 
-    // Accent line at top
-    g.setColour(accentColour);
-    g.fillRoundedRectangle(bounds.getX() + 8.0f, bounds.getY() + 2.0f, bounds.getWidth() - 16.0f, 2.5f, 1.0f);
+    // 3. Subtle dark header well
+    auto headerArea = bounds.removeFromTop(26.0f);
+    g.setColour(RetroUI::RetroLookAndFeel::wellBg.withAlpha(0.65f));
+    g.fillRoundedRectangle(headerArea, 7.0f);
+    g.fillRect(headerArea.removeFromBottom(6.0f)); // Square off bottom corners
 
-    // Header label
+    // 4. Accent dot
+    float dotSize = 5.0f;
+    float dotX = area.getX() + 10.0f;
+    float dotY = area.getY() + 13.0f - dotSize * 0.5f;
     g.setColour(accentColour);
-    g.setFont(juce::Font(12.0f, juce::Font::bold));
-    g.drawText(title, area.getX() + 12, area.getY() + 8, area.getWidth() - 24, 18, juce::Justification::centredLeft);
+    g.fillEllipse(dotX, dotY, dotSize, dotSize);
+
+    // 5. Header label rendered in authentic Pixel Font
+    g.setColour(RetroUI::RetroLookAndFeel::textBright);
+    g.setFont(RetroUI::RetroLookAndFeel::getPixelFont(12.0f));
+    g.drawText(title, area.getX() + 20, area.getY() + 3, area.getWidth() - 30, 20, juce::Justification::centredLeft);
 }
 
 void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    // Global background
-    g.fillAll(RetroUI::RetroLookAndFeel::bgDark);
+    // Global chassis background
+    g.fillAll(RetroUI::RetroLookAndFeel::bgChassis);
 
-    // Header area
+    // Top Header Banner
     g.setColour(RetroUI::RetroLookAndFeel::panelBg.darker(0.2f));
-    g.fillRect(0, 0, getWidth(), 46);
+    g.fillRect(0, 0, getWidth(), 48);
 
     g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
-    g.drawHorizontalLine(46, 0.0f, static_cast<float>(getWidth()));
+    g.drawHorizontalLine(48, 0.0f, static_cast<float>(getWidth()));
 
-    // Title & Brand
-    g.setFont(juce::Font(20.0f, juce::Font::bold));
-    g.setColour(RetroUI::RetroLookAndFeel::cyanGlow);
-    g.drawText("RETRO-BIT SYNTH", 16, 6, 260, 24, juce::Justification::centredLeft);
+    // Title & Brand in Pixel Font
+    g.setFont(RetroUI::RetroLookAndFeel::getPixelFont(18.0f));
+    g.setColour(RetroUI::RetroLookAndFeel::cyanIce);
+    g.drawText("RETRO-BIT SYNTH", 16, 7, 260, 22, juce::Justification::centredLeft);
 
-    g.setFont(juce::Font(11.0f, juce::Font::plain));
+    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.0f, juce::Font::plain));
     g.setColour(RetroUI::RetroLookAndFeel::textMuted);
-    g.drawText("8-BIT & 16-BIT CHIPTUNE ENGINE", 16, 26, 360, 16, juce::Justification::centredLeft);
+    g.drawText("8-BIT & 16-BIT CHIPTUNE HARDWARE MODEL", 16, 27, 340, 16, juce::Justification::centredLeft);
 
-    // Panels
-    drawSectionPanel(g, { 12, 54, 218, 208 }, "OSC 1 (8-BIT CORE)", RetroUI::RetroLookAndFeel::cyanGlow);
-    drawSectionPanel(g, { 238, 54, 348, 208 }, "OSC 2 (16-BIT DETUNE)", RetroUI::RetroLookAndFeel::cyanGlow);
-    drawSectionPanel(g, { 594, 54, 234, 208 }, "CHIPTUNE ARPEGGIATOR", RetroUI::RetroLookAndFeel::greenNeon);
+    // ROW 1: SOUND GENERATION (y = 56, h = 216)
+    drawSectionPanel(g, { 14, 56, 206, 216 }, "OSC 1 (8-BIT)", RetroUI::RetroLookAndFeel::cyanIce);
+    drawSectionPanel(g, { 228, 56, 354, 216 }, "OSC 2 (16-BIT DETUNE)", RetroUI::RetroLookAndFeel::cyanIce);
+    drawSectionPanel(g, { 590, 56, 256, 216 }, "CHIPTUNE ARPEGGIATOR", RetroUI::RetroLookAndFeel::cyanIce);
 
-    drawSectionPanel(g, { 12, 270, 280, 238 }, "ENVELOPE (ADSR)", RetroUI::RetroLookAndFeel::greenNeon);
-    drawSectionPanel(g, { 300, 270, 150, 238 }, "FILTER", RetroUI::RetroLookAndFeel::orangeAmber);
-    drawSectionPanel(g, { 458, 270, 160, 238 }, "LO-FI CRUNCH", RetroUI::RetroLookAndFeel::orangeAmber);
-    drawSectionPanel(g, { 626, 270, 202, 238 }, "MASTER & SCOPE", RetroUI::RetroLookAndFeel::cyanGlow);
+    // Arpeggiator Status Card (eliminates dead space!)
+    auto arpCard = juce::Rectangle<int>(604, 196, 228, 62);
+    g.setColour(RetroUI::RetroLookAndFeel::wellBg);
+    g.fillRoundedRectangle(arpCard.toFloat(), 5.0f);
+    g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
+    g.drawRoundedRectangle(arpCard.toFloat(), 5.0f, 1.0f);
 
-    // Paint CRT oscilloscope
+    int arpModeIdx = arpModeBox.getSelectedId() - 1;
+    juce::String arpDesc = "POLYPHONIC (8 VOICES)";
+    juce::Colour badgeCol = RetroUI::RetroLookAndFeel::textMuted;
+
+    if (arpModeIdx == 1) { arpDesc = "UP: [1 -> 2 -> 3 -> 4]"; badgeCol = RetroUI::RetroLookAndFeel::cyanIce; }
+    else if (arpModeIdx == 2) { arpDesc = "DOWN: [4 -> 3 -> 2 -> 1]"; badgeCol = RetroUI::RetroLookAndFeel::cyanIce; }
+    else if (arpModeIdx == 3) { arpDesc = "UP/DOWN PENDULUM"; badgeCol = RetroUI::RetroLookAndFeel::cyanIce; }
+    else if (arpModeIdx == 4) { arpDesc = "MAJOR: [0, +4, +7, +12]"; badgeCol = RetroUI::RetroLookAndFeel::cyanIce; }
+    else if (arpModeIdx == 5) { arpDesc = "MINOR: [0, +3, +7, +12]"; badgeCol = RetroUI::RetroLookAndFeel::cyanIce; }
+    else if (arpModeIdx == 6) { arpDesc = "OCTAVE: [0, +12, +24]"; badgeCol = RetroUI::RetroLookAndFeel::cyanIce; }
+
+    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(9.5f, juce::Font::bold));
+    g.setColour(RetroUI::RetroLookAndFeel::textMuted);
+    g.drawText("INTERVAL / STEP PREVIEW", arpCard.getX() + 8, arpCard.getY() + 7, arpCard.getWidth() - 16, 14, juce::Justification::left);
+
+    g.setFont(RetroUI::RetroLookAndFeel::getPixelFont(11.0f));
+    g.setColour(badgeCol);
+    g.drawText(arpDesc, arpCard.getX() + 8, arpCard.getY() + 25, arpCard.getWidth() - 16, 24, juce::Justification::left);
+
+    // ROW 2: SHAPING, TONE & MASTER (y = 280, h = 246)
+    drawSectionPanel(g, { 14, 280, 270, 246 }, "ENVELOPE (ADSR)", RetroUI::RetroLookAndFeel::cyanIce);
+    drawSectionPanel(g, { 292, 280, 142, 246 }, "FILTER", RetroUI::RetroLookAndFeel::warmAmber);
+    drawSectionPanel(g, { 442, 280, 140, 246 }, "LO-FI CRUNCH", RetroUI::RetroLookAndFeel::warmAmber);
+    drawSectionPanel(g, { 590, 280, 256, 246 }, "MASTER & SCOPE", RetroUI::RetroLookAndFeel::cyanIce);
+
+    // Paint Hardware-Grade CRT Oscilloscope
     if (!visualizerArea.isEmpty())
     {
         auto vBounds = visualizerArea.toFloat();
-        g.setColour(juce::Colour::fromRGB(10, 14, 20));
-        g.fillRoundedRectangle(vBounds, 4.0f);
 
-        g.setColour(RetroUI::RetroLookAndFeel::panelBorder);
-        g.drawRoundedRectangle(vBounds, 4.0f, 1.0f);
+        // 1. Recessed screen housing
+        g.setColour(juce::Colour::fromRGB(8, 12, 10)); // Deep CRT phosphor black
+        g.fillRoundedRectangle(vBounds, 6.0f);
 
-        // Grid lines (retro CRT style)
-        g.setColour(juce::Colour::fromRGB(20, 30, 42));
-        g.drawHorizontalLine(static_cast<int>(vBounds.getCentreY()), vBounds.getX(), vBounds.getRight());
-        g.drawVerticalLine(static_cast<int>(vBounds.getCentreX()), vBounds.getY(), vBounds.getBottom());
+        // 2. Bezel border
+        g.setColour(RetroUI::RetroLookAndFeel::panelBorder.darker(0.2f));
+        g.drawRoundedRectangle(vBounds, 6.0f, 1.2f);
 
-        // Waveform
-        juce::Path wavePath;
+        // 3. CRT Grid Reticle
+        g.setColour(juce::Colour::fromRGB(18, 28, 22));
         float midY = vBounds.getCentreY();
-        float halfH = vBounds.getHeight() * 0.42f;
+        float midX = vBounds.getCentreX();
+        g.drawLine(vBounds.getX(), midY, vBounds.getRight(), midY, 1.0f);
+        g.drawLine(midX, vBounds.getY(), midX, vBounds.getBottom(), 1.0f);
+
+        // Subdivisions
+        g.drawLine(vBounds.getX(), midY - vBounds.getHeight() * 0.25f, vBounds.getRight(), midY - vBounds.getHeight() * 0.25f, 0.6f);
+        g.drawLine(vBounds.getX(), midY + vBounds.getHeight() * 0.25f, vBounds.getRight(), midY + vBounds.getHeight() * 0.25f, 0.6f);
+
+        // 4. Trace path calculation
+        juce::Path wavePath;
+        float halfH = vBounds.getHeight() * 0.38f;
         float dx = vBounds.getWidth() / static_cast<float>(numVisPoints);
 
         for (int i = 0; i < numVisPoints; ++i)
@@ -242,81 +289,112 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
                 wavePath.lineTo(x, y);
         }
 
-        g.setColour(RetroUI::RetroLookAndFeel::greenNeon.withAlpha(0.9f));
-        g.strokePath(wavePath, juce::PathStrokeType(1.5f));
+        // 5. Phosphor Bloom Glow (Pass 1)
+        g.setColour(juce::Colour::fromRGB(0, 240, 180).withAlpha(0.22f));
+        g.strokePath(wavePath, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+        // 6. Crisp Beam Core (Pass 2)
+        g.setColour(juce::Colour::fromRGB(110, 255, 215).withAlpha(0.95f));
+        g.strokePath(wavePath, juce::PathStrokeType(1.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+        // 7. CRT Horizontal Scanlines
+        g.setColour(juce::Colours::black.withAlpha(0.12f));
+        for (float yLine = vBounds.getY(); yLine < vBounds.getBottom(); yLine += 3.0f)
+        {
+            g.drawHorizontalLine(static_cast<int>(yLine), vBounds.getX(), vBounds.getRight());
+        }
+
+        // 8. Glass tube vignette & reflection curvature
+        juce::ColourGradient vignette(juce::Colours::transparentBlack, midX, midY,
+                                      juce::Colour::fromRGB(2, 4, 3).withAlpha(0.40f), vBounds.getX(), vBounds.getY(), true);
+        g.setGradientFill(vignette);
+        g.fillRoundedRectangle(vBounds, 6.0f);
     }
 }
 
 void SimpleSynthAudioProcessorEditor::resized()
 {
-    // Header Preset Selector
-    presetLabel.setBounds(getWidth() - 335, 11, 55, 24);
-    presetBox.setBounds(getWidth() - 272, 11, 256, 24);
+    // Preset dropdown in header
+    presetLabel.setBounds(getWidth() - 325, 11, 55, 26);
+    presetBox.setBounds(getWidth() - 264, 11, 248, 26);
 
-    // OSC 1
-    osc1WaveLabel.setBounds(24, 84, 194, 16);
-    osc1WaveBox.setBounds(24, 102, 194, 26);
-    osc1PwLabel.setBounds(88, 140, 70, 16);
-    osc1PwSlider.setBounds(88, 156, 70, 84);
+    // ==========================================
+    // ROW 1 (y = 56, h = 216)
+    // ==========================================
 
-    // OSC 2
-    osc2EnableToggle.setBounds(516, 62, 60, 20);
-    osc2WaveLabel.setBounds(250, 84, 160, 16);
-    osc2WaveBox.setBounds(250, 102, 160, 26);
-    oscMixLabel.setBounds(426, 84, 144, 16);
-    oscMixSlider.setBounds(468, 98, 64, 76);
+    // 1. OSC 1 (14, 56, 206, 216)
+    osc1WaveLabel.setBounds(26, 88, 182, 16);
+    osc1WaveBox.setBounds(26, 106, 182, 26);
+    osc1PwLabel.setBounds(79, 146, 76, 16);
+    osc1PwSlider.setBounds(79, 164, 76, 88);
 
-    int osc2KnobY = 156;
-    osc2OctLabel.setBounds(252, 140, 64, 16);
-    osc2OctSlider.setBounds(252, osc2KnobY, 64, 84);
+    // 2. OSC 2 (228, 56, 354, 216)
+    osc2EnableToggle.setBounds(518, 60, 56, 20);
+    osc2WaveLabel.setBounds(240, 88, 172, 16);
+    osc2WaveBox.setBounds(240, 106, 172, 26);
 
-    osc2SemiLabel.setBounds(324, 140, 64, 16);
-    osc2SemiSlider.setBounds(324, osc2KnobY, 64, 84);
+    oscMixLabel.setBounds(432, 88, 134, 16);
+    oscMixSlider.setBounds(468, 104, 68, 80);
 
-    osc2DetuneLabel.setBounds(396, 140, 64, 16);
-    osc2DetuneSlider.setBounds(396, osc2KnobY, 64, 84);
+    const int osc2KnobY = 164;
+    const int osc2KnobW = 72;
+    const int osc2KnobH = 88;
+    osc2OctLabel.setBounds(240, 146, osc2KnobW, 16);
+    osc2OctSlider.setBounds(240, osc2KnobY, osc2KnobW, osc2KnobH);
 
-    // ARPEGGIATOR
-    arpModeLabel.setBounds(606, 84, 210, 16);
-    arpModeBox.setBounds(606, 104, 210, 26);
+    osc2SemiLabel.setBounds(318, 146, osc2KnobW, 16);
+    osc2SemiSlider.setBounds(318, osc2KnobY, osc2KnobW, osc2KnobH);
 
-    arpRateLabel.setBounds(606, 146, 210, 16);
-    arpRateBox.setBounds(606, 166, 210, 26);
+    osc2DetuneLabel.setBounds(396, 146, osc2KnobW, 16);
+    osc2DetuneSlider.setBounds(396, osc2KnobY, osc2KnobW, osc2KnobH);
 
-    // ENVELOPE (ADSR)
-    int envKnobW = 62;
-    int envKnobH = 86;
-    int envY = 320;
+    // 3. ARPEGGIATOR (590, 56, 256, 216)
+    arpModeLabel.setBounds(604, 88, 228, 16);
+    arpModeBox.setBounds(604, 106, 228, 26);
 
-    attackLabel.setBounds(20, 302, envKnobW, 16);
-    attackSlider.setBounds(20, envY, envKnobW, envKnobH);
+    arpRateLabel.setBounds(604, 140, 228, 16);
+    arpRateBox.setBounds(604, 158, 228, 26);
 
-    decayLabel.setBounds(86, 302, envKnobW, 16);
-    decaySlider.setBounds(86, envY, envKnobW, envKnobH);
+    // ==========================================
+    // ROW 2 (y = 280, h = 246)
+    // ==========================================
 
-    sustainLabel.setBounds(152, 302, envKnobW, 16);
-    sustainSlider.setBounds(152, envY, envKnobW, envKnobH);
+    // 4. ENVELOPE (ADSR) (14, 280, 270, 246)
+    const int envKnobW = 60;
+    const int envKnobH = 88;
+    const int envKnobY = 340;
+    const int envLblY = 320;
 
-    releaseLabel.setBounds(218, 302, envKnobW, 16);
-    releaseSlider.setBounds(218, envY, envKnobW, envKnobH);
+    attackLabel.setBounds(22, envLblY, envKnobW, 16);
+    attackSlider.setBounds(22, envKnobY, envKnobW, envKnobH);
 
-    // FILTER
-    cutoffLabel.setBounds(310, 302, 60, 16);
-    cutoffSlider.setBounds(310, envY, 60, envKnobH);
+    decayLabel.setBounds(88, envLblY, envKnobW, 16);
+    decaySlider.setBounds(88, envKnobY, envKnobW, envKnobH);
 
-    resLabel.setBounds(378, 302, 60, 16);
-    resSlider.setBounds(378, envY, 60, envKnobH);
+    sustainLabel.setBounds(154, envLblY, envKnobW, 16);
+    sustainSlider.setBounds(154, envKnobY, envKnobW, envKnobH);
 
-    // LO-FI CRUNCH
-    bitDepthLabel.setBounds(468, 302, 64, 16);
-    bitDepthSlider.setBounds(468, envY, 64, envKnobH);
+    releaseLabel.setBounds(220, envLblY, envKnobW, 16);
+    releaseSlider.setBounds(220, envKnobY, envKnobW, envKnobH);
 
-    downsampleLabel.setBounds(542, 302, 64, 16);
-    downsampleSlider.setBounds(542, envY, 64, envKnobH);
+    // 5. FILTER (292, 280, 142, 246)
+    cutoffLabel.setBounds(300, envLblY, envKnobW, 16);
+    cutoffSlider.setBounds(300, envKnobY, envKnobW, envKnobH);
 
-    // MASTER & VISUALIZER
-    masterGainLabel.setBounds(640, 302, 64, 16);
-    masterGainSlider.setBounds(640, envY, 64, envKnobH);
+    resLabel.setBounds(366, envLblY, envKnobW, 16);
+    resSlider.setBounds(366, envKnobY, envKnobW, envKnobH);
 
-    visualizerArea.setBounds(714, 306, 102, 98);
+    // 6. LO-FI CRUNCH (442, 280, 140, 246)
+    bitDepthLabel.setBounds(450, envLblY, envKnobW, 16);
+    bitDepthSlider.setBounds(450, envKnobY, envKnobW, envKnobH);
+
+    downsampleLabel.setBounds(514, envLblY, envKnobW, 16);
+    downsampleSlider.setBounds(514, envKnobY, envKnobW, envKnobH);
+
+    // 7. MASTER & SCOPE (590, 280, 256, 246)
+    masterGainLabel.setBounds(600, envLblY, 64, 16);
+    masterGainSlider.setBounds(600, envKnobY, 64, envKnobH);
+
+    // Expanded widescreen CRT Oscilloscope
+    visualizerArea.setBounds(672, 314, 162, 198);
 }
