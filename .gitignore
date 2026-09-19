@@ -1,0 +1,33 @@
+# Build directories
+build/
+bin/
+out/
+_deps/
+
+# Visual Studio / MSVC
+.vs/
+*.user
+*.suo
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+
+# Compiled object files & binaries
+*.obj
+*.lib
+*.exp
+*.ilk
+*.pdb
+*.exe
+*.dll
+*.vst3/
+*.vst3
+
+# JUCE temporary & config files
+JuceLibraryCode/
+CMakeUserPresets.json
+
+# OS generated files
+Thumbs.db
+[Dd]esktop.ini
+.DS_Store
