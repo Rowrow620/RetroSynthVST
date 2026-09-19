@@ -53,6 +53,7 @@ target_sources(SimpleSynthVST
         Source/DSP/Arpeggiator.h
         Source/UI/RetroLookAndFeel.cpp
         Source/UI/RetroLookAndFeel.h
+        Source/UI/PixelFontData.h
 )
 
 target_include_directories(SimpleSynthVST PRIVATE Source)
