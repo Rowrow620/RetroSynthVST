@@ -37,16 +37,18 @@ public:
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
                           bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
 
-    // Harmonized Palette Tokens
-    static const juce::Colour bgChassis;      // #0C0E14 Deep base chassis
-    static const juce::Colour panelBg;        // #141722 Slightly lighter panel surface
-    static const juce::Colour panelBorder;    // #1F2535 Subtle inset/border
-    static const juce::Colour wellBg;         // #0F121A Recessed well
-    static const juce::Colour cyanIce;        // #00E5FF Primary accent
-    static const juce::Colour warmAmber;      // #FF9500 Secondary tone/filter accent
-    static const juce::Colour textBright;     // #E2E8F0 Active readouts and values
-    static const juce::Colour textMuted;      // #78849E Dimmed parameter labels
-    static const juce::Colour textDim;        // #4A546A Inactive/track background
+    // Harmonized Palette Tokens (80s/90s Hardware Matte)
+    static const juce::Colour bgChassis;      // #15161A Warm dark charcoal chassis
+    static const juce::Colour panelBg;        // #1E2026 Hardware matte gray panel
+    static const juce::Colour panelBorder;    // #2C2F38 Crisp mechanical divider/border
+    static const juce::Colour wellBg;         // #121317 Recessed well
+    static const juce::Colour cyanIce;        // #00E5FF Active/modulation accent
+    static const juce::Colour warmAmber;      // #E58824 Filter/lo-fi crunch accent
+    static const juce::Colour knobTrack;      // #30333E Neutral inactive track
+    static const juce::Colour knobActive;     // #7A8296 Neutral metallic gray active arc
+    static const juce::Colour textBright;     // #E5E7EB Off-white readable text
+    static const juce::Colour textMuted;      // #8A91A0 Dimmed label text
+    static const juce::Colour textDim;        // #4B5162 Inactive/disabled text
 
     // Backward-compatible aliases
     static const juce::Colour bgDark;

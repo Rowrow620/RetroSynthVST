@@ -48,6 +48,9 @@ public:
     static constexpr int visualizerBufferSize = 512;
     void getVisualizerData(float* destination, int numSamples) const;
 
+    int getArpStep() const { return arpeggiator.getCurrentStepIndex(); }
+    bool isArpActive() const { return arpeggiator.isArpActive(); }
+
 private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

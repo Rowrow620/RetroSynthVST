@@ -52,6 +52,10 @@ public:
         rateIndex = juce::jlimit(0, 3, index);
     }
 
+    int getCurrentStepIndex() const { return stepIndex; }
+    bool isArpActive() const { return mode != ArpMode::Off && !heldNotes.empty(); }
+    ArpMode getMode() const { return mode; }
+
     void process(juce::MidiBuffer& midiMessages, double bpm, int numSamples)
     {
         if (mode == ArpMode::Off)

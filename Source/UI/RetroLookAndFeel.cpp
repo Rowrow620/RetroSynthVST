@@ -4,16 +4,18 @@
 namespace RetroUI
 {
 
-// Harmonized Palette Tokens
-const juce::Colour RetroLookAndFeel::bgChassis   = juce::Colour::fromRGB(12, 14, 20);   // #0C0E14
-const juce::Colour RetroLookAndFeel::panelBg     = juce::Colour::fromRGB(20, 24, 34);   // #141822
-const juce::Colour RetroLookAndFeel::panelBorder = juce::Colour::fromRGB(32, 38, 54);   // #202636
-const juce::Colour RetroLookAndFeel::wellBg      = juce::Colour::fromRGB(15, 18, 26);   // #0F121A
+// Harmonized Palette Tokens (80s/90s Hardware Matte)
+const juce::Colour RetroLookAndFeel::bgChassis   = juce::Colour::fromRGB(21, 22, 26);   // #15161A
+const juce::Colour RetroLookAndFeel::panelBg     = juce::Colour::fromRGB(30, 32, 38);   // #1E2026
+const juce::Colour RetroLookAndFeel::panelBorder = juce::Colour::fromRGB(44, 47, 56);   // #2C2F38
+const juce::Colour RetroLookAndFeel::wellBg      = juce::Colour::fromRGB(18, 19, 23);   // #121317
 const juce::Colour RetroLookAndFeel::cyanIce     = juce::Colour::fromRGB(0, 229, 255);  // #00E5FF
-const juce::Colour RetroLookAndFeel::warmAmber   = juce::Colour::fromRGB(255, 149, 0);  // #FF9500
-const juce::Colour RetroLookAndFeel::textBright  = juce::Colour::fromRGB(226, 232, 240); // #E2E8F0
-const juce::Colour RetroLookAndFeel::textMuted   = juce::Colour::fromRGB(120, 132, 158); // #78849E
-const juce::Colour RetroLookAndFeel::textDim     = juce::Colour::fromRGB(74, 84, 106);   // #4A546A
+const juce::Colour RetroLookAndFeel::warmAmber   = juce::Colour::fromRGB(229, 136, 36); // #E58824
+const juce::Colour RetroLookAndFeel::knobTrack   = juce::Colour::fromRGB(48, 51, 62);   // #30333E
+const juce::Colour RetroLookAndFeel::knobActive  = juce::Colour::fromRGB(122, 130, 150);// #7A8296
+const juce::Colour RetroLookAndFeel::textBright  = juce::Colour::fromRGB(229, 231, 235);// #E5E7EB
+const juce::Colour RetroLookAndFeel::textMuted   = juce::Colour::fromRGB(138, 145, 160);// #8A91A0
+const juce::Colour RetroLookAndFeel::textDim     = juce::Colour::fromRGB(75, 81, 98);   // #4B5162
 
 // Compatibility Aliases
 const juce::Colour RetroLookAndFeel::bgDark      = RetroLookAndFeel::bgChassis;
@@ -32,7 +34,7 @@ RetroLookAndFeel::RetroLookAndFeel()
     setColour(juce::ComboBox::backgroundColourId, wellBg);
     setColour(juce::ComboBox::textColourId, textBright);
     setColour(juce::ComboBox::outlineColourId, panelBorder);
-    setColour(juce::ComboBox::arrowColourId, cyanIce);
+    setColour(juce::ComboBox::arrowColourId, textMuted);
 
     // Menus
     setColour(juce::PopupMenu::backgroundColourId, panelBg);
@@ -60,7 +62,7 @@ juce::Label* RetroLookAndFeel::createSliderTextBox(juce::Slider& slider)
     l->setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
     l->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
     l->setColour(juce::Label::textColourId, textBright);
-    l->setFont(getGeometricFont(11.5f, juce::Font::plain));
+    l->setFont(getGeometricFont(11.0f, juce::Font::plain));
     l->setJustificationType(juce::Justification::centred);
     return l;
 }
@@ -78,8 +80,8 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
     // 1. Inactive background track ring
     juce::Path bgArc;
     bgArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-    g.setColour(panelBorder.darker(0.3f));
-    g.strokePath(bgArc, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.setColour(knobTrack);
+    g.strokePath(bgArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
     // 2. Determine unipolar vs bipolar parameter logic
     const auto name = slider.getName();
@@ -91,13 +93,18 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
 
     float toAngle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
 
-    // Accent color: Warm amber for filter / lo-fi crunch, Cyan Ice for everything else
-    juce::Colour activeColour = cyanIce;
+    // Accent color: Warm amber for filter/crunch, Cyan for level/pw, Neutral metallic gray for everything else!
+    juce::Colour activeColour = knobActive;
     if (name.containsIgnoreCase("Filter") || name.containsIgnoreCase("Cutoff")
         || name.containsIgnoreCase("Res") || name.containsIgnoreCase("Bit")
         || name.containsIgnoreCase("Down") || name.containsIgnoreCase("Crunch"))
     {
         activeColour = warmAmber;
+    }
+    else if (name.containsIgnoreCase("Mix") || name.containsIgnoreCase("Level")
+             || name.containsIgnoreCase("Pw") || name.containsIgnoreCase("Width"))
+    {
+        activeColour = cyanIce.withAlpha(0.85f);
     }
 
     // 3. Draw active arc track with mathematically accurate ranges
