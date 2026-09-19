@@ -39,9 +39,7 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
     setupComboBox(arpRateBox, arpRateLabel, "Division");
 
     // OSC 1 Sliders
-    setupSlider(osc1PwSlider, osc1PwLabel, "Pulse Width", "Osc1Pw");
-    osc1PwSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val * 100.0)) + " %"; };
-    osc1PwSlider.valueFromTextFunction = [](const juce::String& text) { return text.upToFirstOccurrenceOf("%", false, false).trim().getDoubleValue() * 0.01; };
+    setupSlider(osc1PwSlider, osc1PwLabel, "Pulse Width", "Osc1Pw", 0.50);
 
     // OSC 2 Enable Toggle
     addAndMakeVisible(osc2EnableToggle);
@@ -49,116 +47,29 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
     osc2EnableToggle.onClick = [this]() { updateOsc2EnabledState(); };
 
     // OSC 2 Sliders
-    setupSlider(osc2OctSlider, osc2OctLabel, "Octave", "Osc2Oct");
-    osc2OctSlider.textFromValueFunction = [](double val) {
-        int v = juce::roundToInt(val);
-        return (v > 0 ? "+" : "") + juce::String(v) + " oct";
-    };
-    osc2OctSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789").getDoubleValue(); };
-
-    setupSlider(osc2SemiSlider, osc2SemiLabel, "Semitone", "Osc2Semi");
-    osc2SemiSlider.textFromValueFunction = [](double val) {
-        int v = juce::roundToInt(val);
-        return (v > 0 ? "+" : "") + juce::String(v) + " st";
-    };
-    osc2SemiSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789").getDoubleValue(); };
-
-    setupSlider(osc2DetuneSlider, osc2DetuneLabel, "Fine Tune", "Osc2Detune");
-    osc2DetuneSlider.textFromValueFunction = [](double val) {
-        int c = juce::roundToInt(val);
-        return (c > 0 ? "+" : "") + juce::String(c) + " ct";
-    };
-    osc2DetuneSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789.").getDoubleValue(); };
-
-    setupSlider(oscMixSlider, oscMixLabel, "Level", "OscMix");
-    oscMixSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val * 100.0)) + " %"; };
-    oscMixSlider.valueFromTextFunction = [](const juce::String& text) { return text.upToFirstOccurrenceOf("%", false, false).trim().getDoubleValue() * 0.01; };
+    setupSlider(osc2OctSlider, osc2OctLabel, "Octave", "Osc2Oct", 0.0);
+    setupSlider(osc2SemiSlider, osc2SemiLabel, "Semitone", "Osc2Semi", 0.0);
+    setupSlider(osc2DetuneSlider, osc2DetuneLabel, "Fine Tune", "Osc2Detune", 0.0);
+    setupSlider(oscMixSlider, oscMixLabel, "Level", "OscMix", 0.0);
 
     // Envelope Sliders
-    setupSlider(attackSlider, attackLabel, "Attack", "EnvAttack");
-    attackSlider.textFromValueFunction = [](double val) {
-        if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
-        return juce::String(val, 1) + " s";
-    };
-    attackSlider.valueFromTextFunction = [](const juce::String& text) {
-        if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
-        return text.retainCharacters("0123456789.").getDoubleValue();
-    };
-
-    setupSlider(decaySlider, decayLabel, "Decay", "EnvDecay");
-    decaySlider.textFromValueFunction = [](double val) {
-        if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
-        return juce::String(val, 1) + " s";
-    };
-    decaySlider.valueFromTextFunction = [](const juce::String& text) {
-        if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
-        return text.retainCharacters("0123456789.").getDoubleValue();
-    };
-
-    setupSlider(sustainSlider, sustainLabel, "Sustain", "EnvSustain");
-    sustainSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val * 100.0)) + " %"; };
-    sustainSlider.valueFromTextFunction = [](const juce::String& text) { return text.upToFirstOccurrenceOf("%", false, false).trim().getDoubleValue() * 0.01; };
-
-    setupSlider(releaseSlider, releaseLabel, "Release", "EnvRelease");
-    releaseSlider.textFromValueFunction = [](double val) {
-        if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
-        return juce::String(val, 1) + " s";
-    };
-    releaseSlider.valueFromTextFunction = [](const juce::String& text) {
-        if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
-        return text.retainCharacters("0123456789.").getDoubleValue();
-    };
+    setupSlider(attackSlider, attackLabel, "Attack", "EnvAttack", 0.010);
+    setupSlider(decaySlider, decayLabel, "Decay", "EnvDecay", 0.150);
+    setupSlider(sustainSlider, sustainLabel, "Sustain", "EnvSustain", 0.70);
+    setupSlider(releaseSlider, releaseLabel, "Release", "EnvRelease", 0.200);
 
     // Filter Sliders
-    setupSlider(cutoffSlider, cutoffLabel, "Cutoff", "FilterCutoff");
-    cutoffSlider.textFromValueFunction = [](double val) {
-        if (val >= 1000.0) return juce::String(val * 0.001, 1) + " kHz";
-        return juce::String(juce::roundToInt(val)) + " Hz";
-    };
-    cutoffSlider.valueFromTextFunction = [](const juce::String& text) {
-        if (text.containsIgnoreCase("k")) return text.retainCharacters("0123456789.").getDoubleValue() * 1000.0;
-        return text.retainCharacters("0123456789.").getDoubleValue();
-    };
-
-    setupSlider(resSlider, resLabel, "Resonance", "FilterRes");
-    resSlider.textFromValueFunction = [](double val) {
-        return juce::String(val, 2);
-    };
-    resSlider.valueFromTextFunction = [](const juce::String& text) {
-        return text.retainCharacters("0123456789.").getDoubleValue();
-    };
+    setupSlider(cutoffSlider, cutoffLabel, "Cutoff", "FilterCutoff", 20000.0);
+    setupSlider(resSlider, resLabel, "Resonance", "FilterRes", 0.70);
 
     // Lo-Fi Crunch Sliders
-    setupSlider(bitDepthSlider, bitDepthLabel, "Bits", "BitDepth");
-    bitDepthSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val)) + " bit"; };
-    bitDepthSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("0123456789.").getDoubleValue(); };
-
-    setupSlider(downsampleSlider, downsampleLabel, "Crunch", "Downsample");
-    downsampleSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val)) + "x"; };
-    downsampleSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("0123456789.").getDoubleValue(); };
+    setupSlider(bitDepthSlider, bitDepthLabel, "Bits", "BitDepth", 16.0);
+    setupSlider(downsampleSlider, downsampleLabel, "Crunch", "Downsample", 1.0);
 
     // Master Slider
-    setupSlider(masterGainSlider, masterGainLabel, "Volume", "MasterGain");
-    masterGainSlider.textFromValueFunction = [](double val) { return juce::String(val, 1) + " dB"; };
-    masterGainSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789.").getDoubleValue(); };
+    setupSlider(masterGainSlider, masterGainLabel, "Volume", "MasterGain", 0.0);
 
-    // Update text formatting on all sliders
-    osc1PwSlider.updateText();
-    osc2OctSlider.updateText();
-    osc2SemiSlider.updateText();
-    osc2DetuneSlider.updateText();
-    oscMixSlider.updateText();
-    attackSlider.updateText();
-    decaySlider.updateText();
-    sustainSlider.updateText();
-    releaseSlider.updateText();
-    cutoffSlider.updateText();
-    resSlider.updateText();
-    bitDepthSlider.updateText();
-    downsampleSlider.updateText();
-    masterGainSlider.updateText();
-
-    // Attachments
+    // Attachments (constructed first so formatters override attachment defaults)
     auto& apvts = audioProcessor.getAPVTS();
 
     osc1WaveAttach = std::make_unique<ComboAttachment>(apvts, "osc1_wave", osc1WaveBox);
@@ -191,6 +102,102 @@ SimpleSynthAudioProcessorEditor::SimpleSynthAudioProcessorEditor(SimpleSynthAudi
 
     masterGainAttach = std::make_unique<SliderAttachment>(apvts, "master_gain", masterGainSlider);
 
+    // Precise Human-Scale Value Formatters (Applied post-attachment)
+    osc1PwSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val * 100.0)) + " %"; };
+    osc1PwSlider.valueFromTextFunction = [](const juce::String& text) { return text.upToFirstOccurrenceOf("%", false, false).trim().getDoubleValue() * 0.01; };
+
+    osc2OctSlider.textFromValueFunction = [](double val) {
+        int v = juce::roundToInt(val);
+        return (v > 0 ? "+" : "") + juce::String(v) + " oct";
+    };
+    osc2OctSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789").getDoubleValue(); };
+
+    osc2SemiSlider.textFromValueFunction = [](double val) {
+        int v = juce::roundToInt(val);
+        return (v > 0 ? "+" : "") + juce::String(v) + " st";
+    };
+    osc2SemiSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789").getDoubleValue(); };
+
+    osc2DetuneSlider.textFromValueFunction = [](double val) {
+        int c = juce::roundToInt(val);
+        return (c > 0 ? "+" : "") + juce::String(c) + " ct";
+    };
+    osc2DetuneSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789.").getDoubleValue(); };
+
+    oscMixSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val * 100.0)) + " %"; };
+    oscMixSlider.valueFromTextFunction = [](const juce::String& text) { return text.upToFirstOccurrenceOf("%", false, false).trim().getDoubleValue() * 0.01; };
+
+    attackSlider.textFromValueFunction = [](double val) {
+        if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
+        return juce::String(val, 2) + " s";
+    };
+    attackSlider.valueFromTextFunction = [](const juce::String& text) {
+        if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
+        return text.retainCharacters("0123456789.").getDoubleValue();
+    };
+
+    decaySlider.textFromValueFunction = [](double val) {
+        if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
+        return juce::String(val, 2) + " s";
+    };
+    decaySlider.valueFromTextFunction = [](const juce::String& text) {
+        if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
+        return text.retainCharacters("0123456789.").getDoubleValue();
+    };
+
+    sustainSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val * 100.0)) + " %"; };
+    sustainSlider.valueFromTextFunction = [](const juce::String& text) { return text.upToFirstOccurrenceOf("%", false, false).trim().getDoubleValue() * 0.01; };
+
+    releaseSlider.textFromValueFunction = [](double val) {
+        if (val < 1.0) return juce::String(juce::roundToInt(val * 1000.0)) + " ms";
+        return juce::String(val, 2) + " s";
+    };
+    releaseSlider.valueFromTextFunction = [](const juce::String& text) {
+        if (text.containsIgnoreCase("ms")) return text.retainCharacters("0123456789.").getDoubleValue() * 0.001;
+        return text.retainCharacters("0123456789.").getDoubleValue();
+    };
+
+    cutoffSlider.textFromValueFunction = [](double val) {
+        if (val >= 1000.0) return juce::String(val * 0.001, 1) + " kHz";
+        return juce::String(juce::roundToInt(val)) + " Hz";
+    };
+    cutoffSlider.valueFromTextFunction = [](const juce::String& text) {
+        if (text.containsIgnoreCase("k")) return text.retainCharacters("0123456789.").getDoubleValue() * 1000.0;
+        return text.retainCharacters("0123456789.").getDoubleValue();
+    };
+
+    resSlider.textFromValueFunction = [](double val) {
+        return juce::String(val, 2);
+    };
+    resSlider.valueFromTextFunction = [](const juce::String& text) {
+        return text.retainCharacters("0123456789.").getDoubleValue();
+    };
+
+    bitDepthSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val)) + " bit"; };
+    bitDepthSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("0123456789.").getDoubleValue(); };
+
+    downsampleSlider.textFromValueFunction = [](double val) { return juce::String(juce::roundToInt(val)) + "x"; };
+    downsampleSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("0123456789.").getDoubleValue(); };
+
+    masterGainSlider.textFromValueFunction = [](double val) { return juce::String(val, 1) + " dB"; };
+    masterGainSlider.valueFromTextFunction = [](const juce::String& text) { return text.retainCharacters("-+0123456789.").getDoubleValue(); };
+
+    // Update text formatting on all sliders
+    osc1PwSlider.updateText();
+    osc2OctSlider.updateText();
+    osc2SemiSlider.updateText();
+    osc2DetuneSlider.updateText();
+    oscMixSlider.updateText();
+    attackSlider.updateText();
+    decaySlider.updateText();
+    sustainSlider.updateText();
+    releaseSlider.updateText();
+    cutoffSlider.updateText();
+    resSlider.updateText();
+    bitDepthSlider.updateText();
+    downsampleSlider.updateText();
+    masterGainSlider.updateText();
+
     setSize(860, 540);
     startTimerHz(30);
 }
@@ -202,11 +209,13 @@ SimpleSynthAudioProcessorEditor::~SimpleSynthAudioProcessorEditor()
 }
 
 void SimpleSynthAudioProcessorEditor::setupSlider(juce::Slider& slider, juce::Label& label,
-                                                  const juce::String& text, const juce::String& name)
+                                                  const juce::String& text, const juce::String& name,
+                                                  double defaultValue)
 {
     slider.setName(name);
     slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 62, 16);
+    slider.setDoubleClickReturnValue(true, defaultValue);
     addAndMakeVisible(slider);
 
     label.setText(text, juce::dontSendNotification);
@@ -243,6 +252,8 @@ void SimpleSynthAudioProcessorEditor::updateArpEnabledState()
 {
     bool arpEnabled = (arpModeBox.getSelectedId() > 1); // 1 is 'Off'
     arpRateBox.setEnabled(arpEnabled);
+    arpRateBox.setAlpha(arpEnabled ? 1.0f : 0.35f);
+    arpRateLabel.setAlpha(arpEnabled ? 1.0f : 0.35f);
     repaint(530, 54, 316, 220);
 }
 
@@ -316,10 +327,10 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     g.setColour(RetroUI::RetroLookAndFeel::textMuted);
     g.drawText("8-BIT / 16-BIT HARDWARE HYBRID", 18, 26, 260, 16, juce::Justification::centredLeft);
 
-    // Quiet voice readout in header
-    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.0f, juce::Font::plain));
-    g.setColour(RetroUI::RetroLookAndFeel::textMuted.withAlpha(0.7f));
-    g.drawText("Poly · 8 Voices", 420, 16, 100, 16, juce::Justification::centredRight);
+    // Quiet voice badge in header near Preset selector
+    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(10.5f, juce::Font::plain));
+    g.setColour(RetroUI::RetroLookAndFeel::textMuted.withAlpha(0.85f));
+    g.drawText("8-Voice Poly", 440, 15, 84, 16, juce::Justification::centredRight);
 
     // ==========================================
     // ROW 1: SOUND GENERATION (y = 54, h = 220)
@@ -339,7 +350,7 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     g.drawVerticalLine(256, 74.0f, 264.0f);
 
     // Subtle tick between tuning group and level in OSC 2
-    g.drawVerticalLine(448, 150.0f, 252.0f);
+    g.drawVerticalLine(451, 148.0f, 252.0f);
 
     // Aggressive dimming for disabled OSC 2
     if (!osc2EnableToggle.getToggleState())
@@ -447,8 +458,8 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     // Aggressive dimming over Arpeggiator body when Pattern = Off
     if (!arpEnabled)
     {
-        auto arpScrim = juce::Rectangle<float>(532.0f, 122.0f, 312.0f, 148.0f);
-        g.setColour(RetroUI::RetroLookAndFeel::bgChassis.withAlpha(0.50f));
+        auto arpScrim = juce::Rectangle<float>(532.0f, 120.0f, 312.0f, 150.0f);
+        g.setColour(RetroUI::RetroLookAndFeel::bgChassis.withAlpha(0.55f));
         g.fillRoundedRectangle(arpScrim, 3.0f);
     }
 
@@ -476,7 +487,7 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
     // ==========================================
     // MASTER SECTION: REAL-TIME LED PEAK METER
     // ==========================================
-    auto meterRect = juce::Rectangle<float>(674.0f, 332.0f, 16.0f, 78.0f);
+    auto meterRect = juce::Rectangle<float>(672.0f, 334.0f, 14.0f, 78.0f);
     g.setColour(RetroUI::RetroLookAndFeel::wellBg);
     g.fillRoundedRectangle(meterRect, 2.0f);
     g.setColour(RetroUI::RetroLookAndFeel::panelBorder.darker(0.1f));
@@ -503,9 +514,9 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
 
         juce::Colour segColour = juce::Colour::fromRGB(0, 229, 163); // Green/cyan default
         if (segIndexFromBottom >= 8)
-            segColour = juce::Colour::fromRGB(255, 69, 58);  // Red clipping
+            segColour = juce::Colour::fromRGB(255, 69, 58);  // Red clipping (> 0 dB)
         else if (segIndexFromBottom >= 6)
-            segColour = RetroUI::RetroLookAndFeel::warmAmber; // Amber caution
+            segColour = RetroUI::RetroLookAndFeel::warmAmber; // Amber caution (-6 dB to 0 dB)
 
         if (isLit)
         {
@@ -519,13 +530,12 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
         }
     }
 
-    // dB Markings beside meter
-    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(8.5f, juce::Font::plain));
-    g.setColour(RetroUI::RetroLookAndFeel::textDim);
-    g.drawText("+3", 694, 331, 20, 10, juce::Justification::centredLeft);
-    g.drawText(" 0", 694, 347, 20, 10, juce::Justification::centredLeft);
-    g.drawText("-6", 694, 363, 20, 10, juce::Justification::centredLeft);
-    g.drawText("-18", 694, 381, 22, 10, juce::Justification::centredLeft);
+    // Clear dB Markings beside meter: only 3 readable markings (0, -6, -12)
+    g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(9.0f, juce::Font::bold));
+    g.setColour(RetroUI::RetroLookAndFeel::textMuted);
+    g.drawText("0", 690, 345, 24, 12, juce::Justification::centredLeft);
+    g.drawText("-6", 690, 362, 24, 12, juce::Justification::centredLeft);
+    g.drawText("-12", 690, 382, 24, 12, juce::Justification::centredLeft);
 
     // ==========================================
     // HARDWARE CRT OSCILLOSCOPE (STABILIZED TRACE)
@@ -546,9 +556,12 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
         float midY = vBounds.getCentreY();
         float midX = vBounds.getCentreX();
 
+        // Subtle horizontal zero centerline across the oscilloscope
+        g.setColour(juce::Colour::fromRGB(32, 64, 48));
+        g.drawLine(vBounds.getX(), midY, vBounds.getRight(), midY, 1.2f);
+
         // Center crosshairs
         g.setColour(juce::Colour::fromRGB(22, 42, 32));
-        g.drawLine(vBounds.getX(), midY, vBounds.getRight(), midY, 1.0f);
         g.drawLine(midX, vBounds.getY(), midX, vBounds.getBottom(), 1.0f);
 
         // Reticle ticks on crosshairs (instrumentation look)
@@ -606,11 +619,11 @@ void SimpleSynthAudioProcessorEditor::paint(juce::Graphics& g)
             g.drawHorizontalLine(static_cast<int>(yLine), vBounds.getX(), vBounds.getRight());
         }
 
-        // 7. Mini TRACE status badge in top-right
-        g.setColour(juce::Colour::fromRGB(0, 240, 180).withAlpha(0.85f));
-        g.fillEllipse(vBounds.getRight() - 48.0f, vBounds.getY() + 7.0f, 4.0f, 4.0f);
-        g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(8.0f, juce::Font::bold));
-        g.drawText("TRACE", juce::Rectangle<float>(vBounds.getRight() - 42.0f, vBounds.getY() + 4.0f, 36.0f, 10.0f).toNearestInt(), juce::Justification::centredLeft);
+        // 7. Mini OUT status badge in top-right with green indicator dot
+        g.setColour(juce::Colour::fromRGB(0, 240, 160));
+        g.fillEllipse(vBounds.getRight() - 38.0f, vBounds.getY() + 7.5f, 4.5f, 4.5f);
+        g.setFont(RetroUI::RetroLookAndFeel::getGeometricFont(8.5f, juce::Font::bold));
+        g.drawText("OUT", juce::Rectangle<float>(vBounds.getRight() - 30.0f, vBounds.getY() + 4.0f, 24.0f, 11.0f).toNearestInt(), juce::Justification::centredLeft);
 
         // 8. Glass tube spherical vignette
         juce::ColourGradient vignette(juce::Colours::transparentBlack, midX, midY,
@@ -647,35 +660,35 @@ void SimpleSynthAudioProcessorEditor::resized()
     const int osc2LblY  = 148;
 
     // Pitch/Tuning controls
-    osc2OctLabel.setBounds(270, osc2LblY, osc2KnobW, 14);
-    osc2OctSlider.setBounds(270, osc2KnobY, osc2KnobW, osc2KnobH);
+    osc2OctLabel.setBounds(266, osc2LblY, osc2KnobW, 14);
+    osc2OctSlider.setBounds(266, osc2KnobY, osc2KnobW, osc2KnobH);
 
-    osc2SemiLabel.setBounds(330, osc2LblY, osc2KnobW, 14);
-    osc2SemiSlider.setBounds(330, osc2KnobY, osc2KnobW, osc2KnobH);
+    osc2SemiLabel.setBounds(328, osc2LblY, osc2KnobW, 14);
+    osc2SemiSlider.setBounds(328, osc2KnobY, osc2KnobW, osc2KnobH);
 
     osc2DetuneLabel.setBounds(390, osc2LblY, osc2KnobW, 14);
     osc2DetuneSlider.setBounds(390, osc2KnobY, osc2KnobW, osc2KnobH);
 
-    // Distinct Level control
-    oscMixLabel.setBounds(454, osc2LblY, 54, 14);
-    oscMixSlider.setBounds(454, osc2KnobY, 54, osc2KnobH);
+    // Equal-sized Level control (matching Oct/Semi/Detune)
+    oscMixLabel.setBounds(456, osc2LblY, osc2KnobW, 14);
+    oscMixSlider.setBounds(456, osc2KnobY, osc2KnobW, osc2KnobH);
 
     // ARPEGGIATOR (x = 530, y = 54, w = 316, h = 220)
-    arpModeLabel.setBounds(546, 96, 64, 22);
-    arpModeBox.setBounds(616, 94, 214, 24);
+    arpModeLabel.setBounds(546, 98, 64, 22);
+    arpModeBox.setBounds(616, 96, 214, 24);
 
-    arpRateLabel.setBounds(546, 126, 64, 22);
-    arpRateBox.setBounds(616, 124, 214, 24);
+    arpRateLabel.setBounds(546, 128, 64, 22);
+    arpRateBox.setBounds(616, 126, 214, 24);
 
     // ==========================================
     // ROW 2: CONTINUOUS LOWER PLATE (y = 284, h = 244)
     // ==========================================
 
-    // ENVELOPE (ADSR) (x = 14 to 288)
+    // ENVELOPE (ADSR) (x = 14 to 288) - Standardized label baseline y = 324
     const int envKnobW = 58;
-    const int envKnobH = 92;
-    const int envKnobY = 348;
-    const int envLblY  = 330;
+    const int envKnobH = 90;
+    const int envKnobY = 340;
+    const int envLblY  = 324;
 
     attackLabel.setBounds(26, envLblY, envKnobW, 14);
     attackSlider.setBounds(26, envKnobY, envKnobW, envKnobH);
@@ -689,25 +702,25 @@ void SimpleSynthAudioProcessorEditor::resized()
     releaseLabel.setBounds(218, envLblY, envKnobW, 14);
     releaseSlider.setBounds(218, envKnobY, envKnobW, envKnobH);
 
-    // FILTER / CRUNCH (x = 288 to 566) - 2x2 grid
+    // FILTER / CRUNCH (x = 288 to 566) - Standardized label baseline y = 324
     const int filterKnobW = 96;
     const int filterKnobH = 76;
 
-    cutoffLabel.setBounds(318, 322, filterKnobW, 14);
-    cutoffSlider.setBounds(318, 338, filterKnobW, filterKnobH);
+    cutoffLabel.setBounds(318, 324, filterKnobW, 14);
+    cutoffSlider.setBounds(318, 340, filterKnobW, filterKnobH);
 
-    resLabel.setBounds(438, 322, filterKnobW, 14);
-    resSlider.setBounds(438, 338, filterKnobW, filterKnobH);
+    resLabel.setBounds(438, 324, filterKnobW, 14);
+    resSlider.setBounds(438, 340, filterKnobW, filterKnobH);
 
-    bitDepthLabel.setBounds(318, 422, filterKnobW, 14);
-    bitDepthSlider.setBounds(318, 438, filterKnobW, filterKnobH);
+    bitDepthLabel.setBounds(318, 424, filterKnobW, 14);
+    bitDepthSlider.setBounds(318, 440, filterKnobW, filterKnobH);
 
-    downsampleLabel.setBounds(438, 422, filterKnobW, 14);
-    downsampleSlider.setBounds(438, 438, filterKnobW, filterKnobH);
+    downsampleLabel.setBounds(438, 424, filterKnobW, 14);
+    downsampleSlider.setBounds(438, 440, filterKnobW, filterKnobH);
 
-    // MASTER & SCOPE (x = 566 to 846)
-    masterGainLabel.setBounds(586, 320, 72, 14);
-    masterGainSlider.setBounds(586, 336, 72, 76);
+    // MASTER & SCOPE (x = 566 to 846) - Unified cluster above scope
+    masterGainLabel.setBounds(598, 320, 68, 14);
+    masterGainSlider.setBounds(598, 336, 68, 76);
 
     // Recessed widescreen CRT oscilloscope integrated beneath Volume and Level meter
     visualizerArea.setBounds(586, 422, 244, 94);

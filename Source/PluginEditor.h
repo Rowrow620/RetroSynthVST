@@ -18,7 +18,7 @@ public:
 private:
     void timerCallback() override;
 
-    void setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text, const juce::String& name);
+    void setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text, const juce::String& name, double defaultValue = 0.0);
     void setupComboBox(juce::ComboBox& box, juce::Label& label, const juce::String& text);
 
     void drawSectionPanel(juce::Graphics& g, const juce::Rectangle<int>& area,

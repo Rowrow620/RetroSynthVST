@@ -431,79 +431,133 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleSynthAudioProcessor::c
         juce::StringArray { "Pulse (PWM)", "NES 4-bit Tri", "Sawtooth", "Sine", "LFSR Noise" }, 0));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "osc1_pw", "Osc 1 Pulse Width",
-        juce::NormalisableRange<float>(0.05f, 0.95f, 0.01f), 0.50f));
+        juce::ParameterID("osc1_pw", 1), "Osc 1 Pulse Width",
+        juce::NormalisableRange<float>(0.05f, 0.95f, 0.01f), 0.50f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) { return juce::String(juce::roundToInt(val * 100.0f)) + " %"; }
+        )));
 
     // OSC 2
     params.push_back(std::make_unique<juce::AudioParameterBool>(
-        "osc2_enabled", "Osc 2 Enabled", true));
+        juce::ParameterID("osc2_enabled", 1), "Osc 2 Enabled", true));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
-        "osc2_wave", "Osc 2 Wave",
+        juce::ParameterID("osc2_wave", 1), "Osc 2 Wave",
         juce::StringArray { "Pulse (PWM)", "NES 4-bit Tri", "Sawtooth", "Sine", "LFSR Noise" }, 2));
 
     params.push_back(std::make_unique<juce::AudioParameterInt>(
-        "osc2_octave", "Osc 2 Octave", -2, 2, 0));
+        juce::ParameterID("osc2_octave", 1), "Osc 2 Octave", -2, 2, 0,
+        juce::AudioParameterIntAttributes().withStringFromValueFunction(
+            [](int v, int) { return (v > 0 ? "+" : "") + juce::String(v) + " oct"; }
+        )));
 
     params.push_back(std::make_unique<juce::AudioParameterInt>(
-        "osc2_semi", "Osc 2 Semitone", -12, 12, 0));
+        juce::ParameterID("osc2_semi", 1), "Osc 2 Semitone", -12, 12, 0,
+        juce::AudioParameterIntAttributes().withStringFromValueFunction(
+            [](int v, int) { return (v > 0 ? "+" : "") + juce::String(v) + " st"; }
+        )));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "osc2_detune", "Osc 2 Detune (Cents)",
-        juce::NormalisableRange<float>(-50.0f, 50.0f, 0.5f), 0.0f));
+        juce::ParameterID("osc2_detune", 1), "Osc 2 Detune (Cents)",
+        juce::NormalisableRange<float>(-50.0f, 50.0f, 0.5f), 0.0f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) { int c = juce::roundToInt(val); return (c > 0 ? "+" : "") + juce::String(c) + " ct"; }
+        )));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "osc_mix", "Oscillator Mix",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.0f));
+        juce::ParameterID("osc_mix", 1), "Oscillator Level",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.0f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) { return juce::String(juce::roundToInt(val * 100.0f)) + " %"; }
+        )));
 
     // ENVELOPE
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "env_attack", "Attack",
-        juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f), 0.01f));
+        juce::ParameterID("env_attack", 1), "Attack",
+        juce::NormalisableRange<float>(0.001f, 2.0f, 0.001f, 0.3f), 0.01f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) {
+                if (val < 1.0f) return juce::String(juce::roundToInt(val * 1000.0f)) + " ms";
+                return juce::String(val, 1) + " s";
+            }
+        )));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "env_decay", "Decay",
-        juce::NormalisableRange<float>(0.001f, 3.0f, 0.001f, 0.3f), 0.15f));
+        juce::ParameterID("env_decay", 1), "Decay",
+        juce::NormalisableRange<float>(0.001f, 3.0f, 0.001f, 0.3f), 0.15f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) {
+                if (val < 1.0f) return juce::String(juce::roundToInt(val * 1000.0f)) + " ms";
+                return juce::String(val, 1) + " s";
+            }
+        )));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "env_sustain", "Sustain",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.70f));
+        juce::ParameterID("env_sustain", 1), "Sustain",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.70f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) { return juce::String(juce::roundToInt(val * 100.0f)) + " %"; }
+        )));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "env_release", "Release",
-        juce::NormalisableRange<float>(0.01f, 3.0f, 0.001f, 0.3f), 0.20f));
+        juce::ParameterID("env_release", 1), "Release",
+        juce::NormalisableRange<float>(0.01f, 3.0f, 0.001f, 0.3f), 0.20f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) {
+                if (val < 1.0f) return juce::String(juce::roundToInt(val * 1000.0f)) + " ms";
+                return juce::String(val, 1) + " s";
+            }
+        )));
 
     // FILTER
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "filter_cutoff", "Filter Cutoff",
-        juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.25f), 20000.0f));
+        juce::ParameterID("filter_cutoff", 1), "Filter Cutoff",
+        juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.25f), 20000.0f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) {
+                if (val >= 1000.0f) return juce::String(val * 0.001f, 1) + " kHz";
+                return juce::String(juce::roundToInt(val)) + " Hz";
+            }
+        )));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "filter_res", "Filter Resonance",
-        juce::NormalisableRange<float>(0.1f, 5.0f, 0.05f), 0.707f));
+        juce::ParameterID("filter_res", 1), "Filter Resonance",
+        juce::NormalisableRange<float>(0.1f, 5.0f, 0.05f), 0.707f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) { return juce::String(val, 2); }
+        )));
 
     // LO-FI BITCRUSHER
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "bit_depth", "Bit Depth",
-        juce::NormalisableRange<float>(2.0f, 16.0f, 1.0f), 16.0f));
+        juce::ParameterID("bit_depth", 1), "Bit Depth",
+        juce::NormalisableRange<float>(2.0f, 16.0f, 1.0f), 16.0f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) { return juce::String(juce::roundToInt(val)) + " bit"; }
+        )));
 
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "downsample", "Downsample",
-        juce::NormalisableRange<float>(1.0f, 32.0f, 1.0f), 1.0f));
+        juce::ParameterID("downsample", 1), "Downsample",
+        juce::NormalisableRange<float>(1.0f, 32.0f, 1.0f), 1.0f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) { return juce::String(juce::roundToInt(val)) + "x"; }
+        )));
 
     // ARPEGGIATOR
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
-        "arp_mode", "Arp Mode",
+        juce::ParameterID("arp_mode", 1), "Arp Mode",
         juce::StringArray { "Off", "Up", "Down", "Up/Down", "Chiptune Maj", "Chiptune Min", "Chiptune Oct" }, 0));
 
     params.push_back(std::make_unique<juce::AudioParameterChoice>(
-        "arp_rate", "Arp Rate",
+        juce::ParameterID("arp_rate", 1), "Arp Rate",
         juce::StringArray { "1/8", "1/16", "1/32", "1/64" }, 1));
 
     // MASTER GAIN
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
-        "master_gain", "Master Gain",
-        juce::NormalisableRange<float>(-48.0f, 6.0f, 0.5f), -6.0f));
+        juce::ParameterID("master_gain", 1), "Master Gain",
+        juce::NormalisableRange<float>(-48.0f, 6.0f, 0.5f), -6.0f,
+        juce::AudioParameterFloatAttributes().withStringFromValueFunction(
+            [](float val, int) { return juce::String(val, 1) + " dB"; }
+        )));
 
     return { params.begin(), params.end() };
 }

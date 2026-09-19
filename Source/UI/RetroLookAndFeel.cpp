@@ -10,11 +10,11 @@ const juce::Colour RetroLookAndFeel::panelBg     = juce::Colour::fromRGB(30, 32,
 const juce::Colour RetroLookAndFeel::panelBorder = juce::Colour::fromRGB(44, 47, 56);   // #2C2F38
 const juce::Colour RetroLookAndFeel::wellBg      = juce::Colour::fromRGB(18, 19, 23);   // #121317
 const juce::Colour RetroLookAndFeel::cyanIce     = juce::Colour::fromRGB(0, 229, 255);  // #00E5FF
-const juce::Colour RetroLookAndFeel::warmAmber   = juce::Colour::fromRGB(229, 136, 36); // #E58824
+const juce::Colour RetroLookAndFeel::warmAmber   = juce::Colour::fromRGB(215, 126, 32); // #D77E20 Refined matte amber
 const juce::Colour RetroLookAndFeel::knobTrack   = juce::Colour::fromRGB(32, 34, 41);   // #202229 Darker recessed track
 const juce::Colour RetroLookAndFeel::knobActive  = juce::Colour::fromRGB(104, 112, 128);// #687080 Calm metallic gray
 const juce::Colour RetroLookAndFeel::textBright  = juce::Colour::fromRGB(255, 255, 255);// #FFFFFF Pure readable white
-const juce::Colour RetroLookAndFeel::textMuted   = juce::Colour::fromRGB(166, 175, 191);// #A6AFBF Brightened silver-gray
+const juce::Colour RetroLookAndFeel::textMuted   = juce::Colour::fromRGB(186, 194, 208);// #BAC2D0 ~15% brighter silver
 const juce::Colour RetroLookAndFeel::textDim     = juce::Colour::fromRGB(75, 81, 98);   // #4B5162
 
 // Compatibility Aliases
@@ -111,6 +111,18 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
     auto centreY = bounds.getCentreY();
     const float trackRadius = radius - 3.5f;
 
+    // Interactive states
+    bool isHovered  = slider.isMouseOverOrDragging();
+    bool isDragging = slider.isMouseButtonDown();
+    bool isFocused  = slider.hasKeyboardFocus(true);
+
+    // Focus outline
+    if (isFocused && slider.isEnabled())
+    {
+        g.setColour(cyanIce.withAlpha(0.65f));
+        g.drawEllipse(bounds.reduced(1.0f), 1.0f);
+    }
+
     // 1. Dark, recessed inactive background track ring
     juce::Path bgArc;
     bgArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
@@ -125,28 +137,44 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
 
     float toAngle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
 
-    // Accent color: Warm amber for filter/crunch, Cyan for level/pw, Calm metallic gray for everything else!
+    // Accent color & stroke weight:
+    // Orange Filter/Crunch is thinner (2.2f) and slightly less saturated so the white pointer dominates
     juce::Colour activeColour = knobActive;
+    float arcStroke = 2.8f;
+
     if (name.containsIgnoreCase("Filter") || name.containsIgnoreCase("Cutoff")
         || name.containsIgnoreCase("Res") || name.containsIgnoreCase("Bit")
         || name.containsIgnoreCase("Down") || name.containsIgnoreCase("Crunch"))
     {
-        activeColour = warmAmber;
+        activeColour = warmAmber.withAlpha(0.80f);
+        arcStroke = 2.2f;
     }
     else if (name.containsIgnoreCase("Mix") || name.containsIgnoreCase("Level")
              || name.containsIgnoreCase("Pw") || name.containsIgnoreCase("Width"))
     {
         activeColour = cyanIce;
+        arcStroke = 2.8f;
     }
 
-    // Always draw center detent tick for bipolar zero position
+    // Active drag boosts brightness
+    if (isDragging)
+    {
+        activeColour = activeColour.brighter(0.35f);
+        arcStroke += 0.4f;
+    }
+
+    // 3. Top-Center Detent Marker for Bipolar Controls (Octave, Semitone, Fine Tune)
     if (isBipolar)
     {
-        g.setColour(panelBorder.brighter(0.40f));
-        g.drawLine(centreX, centreY - trackRadius - 4.5f, centreX, centreY - trackRadius + 1.5f, 1.8f);
+        float midAngle = (rotaryStartAngle + rotaryEndAngle) * 0.5f;
+        bool isZero = std::abs(toAngle - midAngle) < 0.035f;
+
+        // Prominent top-center notch emphasizing 0
+        g.setColour(isZero ? juce::Colours::white.withAlpha(0.95f) : panelBorder.brighter(0.55f));
+        g.drawLine(centreX, centreY - trackRadius - 5.0f, centreX, centreY - trackRadius + 2.0f, 2.0f);
     }
 
-    // 3. Draw active arc track with secondary visual prominence
+    // 4. Draw active arc track with secondary visual prominence
     if (slider.isEnabled())
     {
         float fromAngle = rotaryStartAngle;
@@ -172,34 +200,48 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
             juce::Path activeArc;
             activeArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, fromAngle, sweepTo, true);
             g.setColour(activeColour);
-            g.strokePath(activeArc, juce::PathStrokeType(3.2f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+            g.strokePath(activeArc, juce::PathStrokeType(arcStroke, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
         }
     }
 
-    // 4. Center knob body (hardware cylindrical cap in deep matte charcoal)
+    // 5. Center knob body (hardware cap with concentric groove and machined center cap)
     float knobRadius = radius * 0.70f;
 
-    // Subtle drop shadow / rim well
+    // Drop shadow
     g.setColour(juce::Colours::black.withAlpha(0.45f));
     g.fillEllipse(centreX - knobRadius - 1.0f, centreY - knobRadius + 1.0f, (knobRadius + 1.0f) * 2.0f, (knobRadius + 1.0f) * 2.0f);
 
     if (slider.isEnabled())
     {
-        // Cylindrical gradient body (deeper dark matte body)
-        juce::ColourGradient grad(panelBg.darker(0.10f), centreX, centreY - knobRadius,
+        // Cylindrical gradient body
+        juce::ColourGradient grad(panelBg.brighter(0.06f), centreX, centreY - knobRadius,
                                   panelBg.darker(0.35f), centreX, centreY + knobRadius, false);
         g.setGradientFill(grad);
         g.fillEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f);
 
-        // Machined edge rim
-        g.setColour(panelBorder);
-        g.drawEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.0f);
+        // Machined bevel rim (brightens on hover)
+        g.setColour(isHovered ? panelBorder.brighter(0.40f) : panelBorder.brighter(0.12f));
+        g.drawEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.2f);
 
-        // If Level knob: give a subtle cyan inner ring to visually separate gain from pitch
+        // Recessed concentric groove
+        float grooveRadius = knobRadius * 0.65f;
+        g.setColour(juce::Colour::fromRGB(14, 15, 18));
+        g.drawEllipse(centreX - grooveRadius, centreY - grooveRadius, grooveRadius * 2.0f, grooveRadius * 2.0f, 1.0f);
+
+        // Machined center cap disc
+        float capRadius = knobRadius * 0.38f;
+        juce::ColourGradient capGrad(panelBg.darker(0.10f), centreX, centreY - capRadius,
+                                     panelBg.darker(0.38f), centreX, centreY + capRadius, false);
+        g.setGradientFill(capGrad);
+        g.fillEllipse(centreX - capRadius, centreY - capRadius, capRadius * 2.0f, capRadius * 2.0f);
+        g.setColour(panelBorder.brighter(0.08f));
+        g.drawEllipse(centreX - capRadius, centreY - capRadius, capRadius * 2.0f, capRadius * 2.0f, 0.8f);
+
+        // If Level knob: cyan accent ring on cap to separate gain from pitch
         if (name.containsIgnoreCase("Mix") || name.containsIgnoreCase("Level"))
         {
-            g.setColour(cyanIce.withAlpha(0.45f));
-            g.drawEllipse(centreX - knobRadius * 0.45f, centreY - knobRadius * 0.45f, knobRadius * 0.9f, knobRadius * 0.9f, 1.0f);
+            g.setColour(cyanIce.withAlpha(0.60f));
+            g.drawEllipse(centreX - capRadius, centreY - capRadius, capRadius * 2.0f, capRadius * 2.0f, 1.2f);
         }
     }
     else
@@ -210,7 +252,7 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
         g.drawEllipse(centreX - knobRadius, centreY - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.0f);
     }
 
-    // 5. High-precision pointer line - BRIGHTEST element on the knob
+    // 6. High-precision pointer line - BRIGHTEST element on the knob
     juce::Path p;
     float pointerInner = knobRadius * 0.32f;
     float pointerOuter = knobRadius * 0.88f;
@@ -223,19 +265,35 @@ void RetroLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int wid
     g.fillPath(p);
 }
 
-void RetroLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool /*isButtonDown*/,
+void RetroLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
                                     int /*buttonX*/, int /*buttonY*/, int /*buttonW*/, int /*buttonH*/,
                                     juce::ComboBox& box)
 {
     auto area = juce::Rectangle<int>(0, 0, width, height).toFloat().reduced(0.5f);
+    float alpha = box.isEnabled() ? 1.0f : 0.35f;
 
     // Recessed dark well
-    g.setColour(wellBg);
-    g.fillRoundedRectangle(area, 4.0f);
+    g.setColour(wellBg.withMultipliedAlpha(alpha));
+    g.fillRoundedRectangle(area, 3.0f);
 
-    // Border: subtle neutral grey, highlighted with primary cyan when focused
-    g.setColour(box.hasKeyboardFocus(true) ? cyanIce.withAlpha(0.7f) : panelBorder);
-    g.drawRoundedRectangle(area, 4.0f, 1.0f);
+    // Border with hover, active, and keyboard focus states
+    if (!box.isEnabled())
+    {
+        g.setColour(panelBorder.withMultipliedAlpha(0.35f));
+    }
+    else if (box.hasKeyboardFocus(true))
+    {
+        g.setColour(cyanIce.withAlpha(0.85f)); // Thin cyan outline on focus
+    }
+    else if (box.isMouseOver() || isButtonDown)
+    {
+        g.setColour(panelBorder.brighter(0.45f)); // Brighter border on hover
+    }
+    else
+    {
+        g.setColour(panelBorder);
+    }
+    g.drawRoundedRectangle(area, 3.0f, 1.0f);
 
     // Clean chevron arrow
     juce::Path arrow;
@@ -245,8 +303,8 @@ void RetroLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bo
     arrow.lineTo(arrowX + 4.5f, arrowY + 4.5f);
     arrow.lineTo(arrowX + 9.0f, arrowY);
 
-    g.setColour(cyanIce.withAlpha(0.85f));
-    g.strokePath(arrow, juce::PathStrokeType(1.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    g.setColour((box.isEnabled() ? cyanIce : textDim).withMultipliedAlpha(alpha));
+    g.strokePath(arrow, juce::PathStrokeType(1.6f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 }
 
 void RetroLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height)
